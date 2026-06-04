@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="36%" r="78%">
+      <stop offset="0%" stop-color="#161d36"/>
+      <stop offset="58%" stop-color="#0a0e1a"/>
+      <stop offset="100%" stop-color="#06080f"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c6cf0"/>
+    </linearGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="13" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- anillo de progreso (motivo del temporizador) -->
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="11"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="url(#accent)" stroke-width="11"
+          stroke-linecap="round" stroke-dasharray="706 942"
+          transform="rotate(-90 256 256)" filter="url(#glow)"/>
+
+  <!-- diamante (marca StudyFlow) -->
+  <g filter="url(#glow)">
+    <path d="M256 172 L322 256 L256 340 L190 256 Z" fill="url(#accent)"/>
+  </g>
+</svg>

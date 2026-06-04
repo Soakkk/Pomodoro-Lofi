@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="aurora" data-bg="dots">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyFlow</title>
+  <meta name="description" content="Temporizador de estudio con técnicas 52/17 y bloques de 90 minutos, música de Spotify y sonido ambiente.">
+  <meta name="theme-color" content="#070a12" id="metaTheme">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StudyFlow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ░░ FONDOS ░░ -->
+  <canvas id="stars" class="bg-stars"></canvas>
+  <div class="bg-aurora" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+  </div>
+
+  <!-- ░░ APP ░░ -->
+  <div class="app">
+
+    <!-- ─ Barra superior ─ -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">STUDY<span class="brand-accent">FLOW</span></span>
+      </div>
+
+      <nav class="theme-quick" id="themeQuick" aria-label="Tema rápido">
+        <button class="tq" data-theme="aurora" title="Aurora">Aurora</button>
+        <button class="tq" data-theme="glass"  title="Glass">Glass</button>
+        <button class="tq" data-theme="neon"   title="Neón">Neón</button>
+        <button class="tq" data-theme="hud"    title="HUD">HUD</button>
+      </nav>
+
+      <button class="icon-btn" id="btnSettings" title="Personalizar" aria-label="Ajustes">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </header>
+
+    <main class="main">
+
+      <!-- ─ Temporizador ─ -->
+      <section class="timer-hero">
+        <div class="mode-tabs" id="modeTabs" role="tablist">
+          <button class="mode-tab active" data-mode="52-17">52 / 17</button>
+          <button class="mode-tab" data-mode="90-20">90 / 20</button>
+          <button class="mode-tab" data-mode="25-5">25 / 5</button>
+          <button class="mode-tab" data-mode="custom">Personalizado</button>
+        </div>
+
+        <div class="timer-wrapper">
+          <svg class="timer-svg" viewBox="0 0 260 260" width="280" height="280">
+            <circle class="ring-track" cx="130" cy="130" r="118"/>
+            <circle class="ring-progress" id="ringProgress" cx="130" cy="130" r="118"/>
+          </svg>
+          <div class="timer-center">
+            <span class="phase-badge" id="phaseBadge">TRABAJO</span>
+            <div class="time-display" id="timeDisplay">52:00</div>
+            <div class="cycle-info" id="cycleInfo">Ciclo 1 · enfoque</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="ctrl ctrl-sm" id="btnReset" title="Reiniciar fase" aria-label="Reiniciar">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          </button>
+          <button class="ctrl ctrl-play" id="btnPlay" title="Iniciar / Pausar" aria-label="Iniciar o pausar">
+            <svg class="ic-play" viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="ic-pause" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+          </button>
+          <button class="ctrl ctrl-sm" id="btnSkip" title="Saltar fase" aria-label="Saltar fase">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ─ Tarjetas ─ -->
+      <section class="cards">
+
+        <!-- Tarea -->
+        <div class="card card-task">
+          <div class="card-label">Enfoque actual</div>
+          <input class="task-input" id="taskInput" type="text" maxlength="90"
+                 placeholder="¿En qué estás trabajando?">
+        </div>
+
+        <!-- Sesiones -->
+        <div class="card card-sessions">
+          <div class="card-head">
+            <div class="card-label">Sesiones de hoy</div>
+            <div class="sessions-count" id="sessionsCount">0 completadas</div>
+          </div>
+          <div class="dots-row" id="dotsRow"></div>
+          <div class="log-list" id="logList">
+            <div class="log-empty">Aún no has completado sesiones hoy.</div>
+          </div>
+        </div>
+
+        <!-- Spotify -->
+        <div class="card card-spotify">
+          <div class="card-head">
+            <div class="card-label"><span class="dot-live"></span> Música · Spotify</div>
+          </div>
+          <div class="spotify-input-row">
+            <input class="task-input" id="spotifyUrl" type="text"
+                   placeholder="Pega aquí la URL de tu playlist de Spotify…">
+            <button class="btn-load" id="btnLoadSpotify">Cargar</button>
+          </div>
+          <div class="chips" id="spotifyPresets">
+            <button class="chip" data-pl="0vvXsWCC9xrXsKd4FyS8kM">Lofi Beats</button>
+            <button class="chip" data-pl="37i9dQZF1DWZeKCadgRdKQ">Deep Focus</button>
+            <button class="chip" data-pl="37i9dQZF1DX4sWSpwq3LiO">Peaceful Piano</button>
+            <button class="chip" data-pl="37i9dQZF1DX0SM0LYsmbMT">Jazz Vibes</button>
+            <button class="chip" data-pl="37i9dQZF1DX9sIqqvKsjG8">Instrumental Study</button>
+            <button class="chip" data-pl="37i9dQZF1DWXLeA8Omikj7">Brain Food</button>
+          </div>
+          <div class="spotify-frame-wrap" id="spotifyWrap">
+            <iframe id="spotifyFrame" title="Spotify"
+              style="border-radius:14px" src="" width="100%" height="152"
+              frameborder="0" allowfullscreen
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"></iframe>
+          </div>
+        </div>
+
+        <!-- Ambiente -->
+        <div class="card card-ambient">
+          <div class="card-head">
+            <div class="card-label">Sonido ambiente</div>
+          </div>
+          <div class="ambient-btns" id="ambientBtns">
+            <button class="amb" data-amb="rain"><span class="amb-ic">🌧</span><span>Lluvia</span></button>
+            <button class="amb" data-amb="waves"><span class="amb-ic">🌊</span><span>Olas</span></button>
+            <button class="amb" data-amb="cafe"><span class="amb-ic">☕</span><span>Café</span></button>
+            <button class="amb" data-amb="white"><span class="amb-ic">⚪</span><span>Blanco</span></button>
+            <button class="amb" data-amb="brown"><span class="amb-ic">🟤</span><span>Marrón</span></button>
+          </div>
+          <div class="vol-row">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+            <input type="range" id="ambientVol" min="0" max="100" value="50" class="slider">
+          </div>
+        </div>
+
+      </section>
+    </main>
+
+    <footer class="footer">Técnicas 52/17 · Bloques de 90 min · Ritmo ultradiano</footer>
+  </div>
+
+  <!-- ░░ PANEL DE AJUSTES ░░ -->
+  <div class="scrim" id="scrim"></div>
+  <aside class="settings" id="settings" aria-hidden="true">
+    <div class="settings-head">
+      <h2>Personalizar</h2>
+      <button class="icon-btn" id="btnCloseSettings" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="settings-body">
+
+      <!-- Tema -->
+      <div class="set-group">
+        <div class="set-title">Tema visual</div>
+        <div class="theme-grid" id="setThemes">
+          <button class="theme-card" data-theme="aurora">
+            <span class="tc-swatch tc-aurora"></span>
+            <span class="tc-name">Aurora</span>
+            <span class="tc-desc">Sci-fi suave</span>
+          </button>
+          <button class="theme-card" data-theme="glass">
+            <span class="tc-swatch tc-glass"></span>
+            <span class="tc-name">Glass</span>
+            <span class="tc-desc">Cristal esmerilado</span>
+          </button>
+          <button class="theme-card" data-theme="neon">
+            <span class="tc-swatch tc-neon"></span>
+            <span class="tc-name">Neón</span>
+            <span class="tc-desc">Cyberpunk</span>
+          </button>
+          <button class="theme-card" data-theme="hud">
+            <span class="tc-swatch tc-hud"></span>
+            <span class="tc-name">HUD</span>
+            <span class="tc-desc">Técnico</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fondo -->
+      <div class="set-group">
+        <div class="set-title">Fondo animado</div>
+        <div class="bg-grid" id="setBg">
+          <button class="bg-card" data-bg="dots"><span class="bgc-prev bgc-dots"></span>Matriz</button>
+          <button class="bg-card" data-bg="aurora"><span class="bgc-prev bgc-aurora"></span>Aurora</button>
+          <button class="bg-card" data-bg="stars"><span class="bgc-prev bgc-stars"></span>Estrellas</button>
+          <button class="bg-card" data-bg="clean"><span class="bgc-prev bgc-clean"></span>Limpio</button>
+        </div>
+      </div>
+
+      <!-- Color de acento -->
+      <div class="set-group">
+        <div class="set-title">Color de acento</div>
+        <div class="accent-row" id="setAccents">
+          <button class="acc" data-accent="#8b7cf8" style="--a:#8b7cf8"></button>
+          <button class="acc" data-accent="#22d3ee" style="--a:#22d3ee"></button>
+          <button class="acc" data-accent="#34d399" style="--a:#34d399"></button>
+          <button class="acc" data-accent="#fbbf24" style="--a:#fbbf24"></button>
+          <button class="acc" data-accent="#fb7185" style="--a:#fb7185"></button>
+          <button class="acc" data-accent="#60a5fa" style="--a:#60a5fa"></button>
+          <label class="acc acc-custom" title="Color personalizado">
+            <input type="color" id="accentCustom" value="#8b7cf8">
+            <span class="acc-plus">+</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Duraciones -->
+      <div class="set-group">
+        <div class="set-title">Duración personalizada</div>
+        <div class="dur-row">
+          <div class="dur-field">
+            <label for="customWork">Trabajo</label>
+            <div class="dur-input">
+              <input type="number" id="customWork" min="1" max="180" value="45">
+              <span>min</span>
+            </div>
+          </div>
+          <div class="dur-field">
+            <label for="customBreak">Descanso</label>
+            <div class="dur-input">
+              <input type="number" id="customBreak" min="1" max="90" value="15">
+              <span>min</span>
+            </div>
+          </div>
+        </div>
+        <button class="btn-apply" id="btnApplyCustom">Aplicar personalizado</button>
+        <p class="set-hint">Activa el modo «Personalizado» en el temporizador.</p>
+      </div>
+
+      <!-- Instalar -->
+      <div class="set-group" id="installGroup" style="display:none">
+        <div class="set-title">Aplicación</div>
+        <button class="btn-apply" id="btnInstall">⬇  Instalar StudyFlow</button>
+        <p class="set-hint">Instálala como app independiente en tu dispositivo.</p>
+      </div>
+
+      <!-- Reset -->
+      <div class="set-group">
+        <button class="btn-reset-all" id="btnResetAll">Restablecer ajustes</button>
+      </div>
+
+    </div>
+  </aside>
+
+  <script src="app.js"></script>
+</body>
+</html>
