@@ -1,49 +1,55 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="aurora" data-bg="dots">
+<html lang="es" data-theme="nebula" data-bg="particles">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>StudyFlow</title>
   <meta name="description" content="Temporizador de estudio con técnicas 52/17 y bloques de 90 minutos, música de Spotify y sonido ambiente.">
-  <meta name="theme-color" content="#070a12" id="metaTheme">
+  <meta name="theme-color" content="#06070f" id="metaTheme">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="StudyFlow">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
 </head>
 <body>
 
+  <!-- ░░ INTRO ░░ -->
+  <div class="intro" id="intro">
+    <svg class="intro-mark" viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+      <circle class="intro-ring" cx="60" cy="60" r="48"></circle>
+      <path class="intro-diamond" d="M60 26 L86 60 L60 94 L34 60 Z"></path>
+    </svg>
+    <div class="intro-word">STUDY<span>FLOW</span></div>
+  </div>
+
   <!-- ░░ FONDOS ░░ -->
-  <canvas id="stars" class="bg-stars"></canvas>
+  <canvas id="particles" class="bg-particles" aria-hidden="true"></canvas>
   <div class="bg-aurora" aria-hidden="true"></div>
   <div class="bg-glow" aria-hidden="true">
     <span class="blob blob-1"></span>
     <span class="blob blob-2"></span>
     <span class="blob blob-3"></span>
   </div>
+  <div class="bg-grain" aria-hidden="true"></div>
+  <div class="bg-vignette" aria-hidden="true"></div>
 
   <!-- ░░ APP ░░ -->
-  <div class="app">
+  <div class="app" id="app">
 
-    <!-- ─ Barra superior ─ -->
-    <header class="topbar">
+    <header class="topbar reveal" style="--d:0">
       <div class="brand">
         <span class="brand-mark">◆</span>
         <span class="brand-name">STUDY<span class="brand-accent">FLOW</span></span>
       </div>
 
-      <nav class="theme-quick" id="themeQuick" aria-label="Tema rápido">
-        <button class="tq" data-theme="aurora" title="Aurora">Aurora</button>
-        <button class="tq" data-theme="glass"  title="Glass">Glass</button>
-        <button class="tq" data-theme="neon"   title="Neón">Neón</button>
-        <button class="tq" data-theme="hud"    title="HUD">HUD</button>
+      <nav class="theme-quick" id="themeQuick" aria-label="Dirección visual">
+        <button class="tq" data-theme="nebula" title="Nebula">Nebula</button>
+        <button class="tq" data-theme="pulse"  title="Pulse">Pulse</button>
+        <button class="tq" data-theme="aura"   title="Aura">Aura</button>
+        <button class="tq" data-theme="dusk"   title="Dusk">Dusk</button>
       </nav>
 
       <button class="icon-btn" id="btnSettings" title="Personalizar" aria-label="Ajustes">
@@ -54,7 +60,7 @@
     <main class="main">
 
       <!-- ─ Temporizador ─ -->
-      <section class="timer-hero">
+      <section class="timer-hero reveal" style="--d:1">
         <div class="mode-tabs" id="modeTabs" role="tablist">
           <button class="mode-tab active" data-mode="52-17">52 / 17</button>
           <button class="mode-tab" data-mode="90-20">90 / 20</button>
@@ -62,13 +68,26 @@
           <button class="mode-tab" data-mode="custom">Personalizado</button>
         </div>
 
-        <div class="timer-wrapper">
-          <svg class="timer-svg" viewBox="0 0 260 260" width="280" height="280">
-            <circle class="ring-track" cx="130" cy="130" r="118"/>
-            <circle class="ring-progress" id="ringProgress" cx="130" cy="130" r="118"/>
+        <div class="timer-wrapper" id="timerWrapper">
+          <svg class="timer-svg" viewBox="0 0 280 280" width="320" height="320">
+            <defs>
+              <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%"  stop-color="var(--phase)"></stop>
+                <stop offset="100%" stop-color="var(--phase-2)"></stop>
+              </linearGradient>
+              <filter id="ringGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="6" result="b"></feGaussianBlur>
+                <feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+              </filter>
+            </defs>
+            <g id="ticks" class="ticks"></g>
+            <circle class="ring-track" cx="140" cy="140" r="120"></circle>
+            <circle class="ring-progress" id="ringProgress" cx="140" cy="140" r="120"></circle>
+            <circle class="ring-head" id="ringHead" r="5"></circle>
           </svg>
+          <div class="ring-pulse" id="ringPulse" aria-hidden="true"></div>
           <div class="timer-center">
-            <span class="phase-badge" id="phaseBadge">TRABAJO</span>
+            <span class="phase-badge" id="phaseBadge">Trabajo</span>
             <div class="time-display" id="timeDisplay">52:00</div>
             <div class="cycle-info" id="cycleInfo">Ciclo 1 · enfoque</div>
           </div>
@@ -79,8 +98,8 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
           </button>
           <button class="ctrl ctrl-play" id="btnPlay" title="Iniciar / Pausar" aria-label="Iniciar o pausar">
-            <svg class="ic-play" viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            <svg class="ic-pause" viewBox="0 0 24 24" width="26" height="26" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+            <svg class="ic-play" viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg class="ic-pause" viewBox="0 0 24 24" width="28" height="28" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
           </button>
           <button class="ctrl ctrl-sm" id="btnSkip" title="Saltar fase" aria-label="Saltar fase">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4l10 8-10 8z"/><path d="M19 5v14"/></svg>
@@ -91,18 +110,19 @@
       <!-- ─ Tarjetas ─ -->
       <section class="cards">
 
-        <!-- Tarea -->
-        <div class="card card-task">
+        <div class="card card-task reveal" style="--d:2">
           <div class="card-label">Enfoque actual</div>
-          <input class="task-input" id="taskInput" type="text" maxlength="90"
-                 placeholder="¿En qué estás trabajando?">
+          <input class="task-input" id="taskInput" type="text" maxlength="90" placeholder="¿En qué estás trabajando?">
         </div>
 
-        <!-- Sesiones -->
-        <div class="card card-sessions">
+        <div class="card card-sessions reveal" style="--d:3">
           <div class="card-head">
             <div class="card-label">Sesiones de hoy</div>
             <div class="sessions-count" id="sessionsCount">0 completadas</div>
+          </div>
+          <div class="streak-row" id="streakRow">
+            <div class="streak-stat"><span class="streak-num" id="focusMin">0</span><span class="streak-lbl">min de enfoque</span></div>
+            <div class="streak-stat"><span class="streak-num" id="streakNum">0</span><span class="streak-lbl">racha de ciclos</span></div>
           </div>
           <div class="dots-row" id="dotsRow"></div>
           <div class="log-list" id="logList">
@@ -110,14 +130,12 @@
           </div>
         </div>
 
-        <!-- Spotify -->
-        <div class="card card-spotify">
+        <div class="card card-spotify reveal" style="--d:4">
           <div class="card-head">
             <div class="card-label"><span class="dot-live"></span> Música · Spotify</div>
           </div>
           <div class="spotify-input-row">
-            <input class="task-input" id="spotifyUrl" type="text"
-                   placeholder="Pega aquí la URL de tu playlist de Spotify…">
+            <input class="task-input" id="spotifyUrl" type="text" placeholder="Pega aquí la URL de tu playlist de Spotify…">
             <button class="btn-load" id="btnLoadSpotify">Cargar</button>
           </div>
           <div class="chips" id="spotifyPresets">
@@ -129,16 +147,11 @@
             <button class="chip" data-pl="37i9dQZF1DWXLeA8Omikj7">Brain Food</button>
           </div>
           <div class="spotify-frame-wrap" id="spotifyWrap">
-            <iframe id="spotifyFrame" title="Spotify"
-              style="border-radius:14px" src="" width="100%" height="152"
-              frameborder="0" allowfullscreen
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"></iframe>
+            <iframe id="spotifyFrame" title="Spotify" style="border-radius:14px" src="" width="100%" height="152" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
           </div>
         </div>
 
-        <!-- Ambiente -->
-        <div class="card card-ambient">
+        <div class="card card-ambient reveal" style="--d:5">
           <div class="card-head">
             <div class="card-label">Sonido ambiente</div>
           </div>
@@ -158,7 +171,7 @@
       </section>
     </main>
 
-    <footer class="footer">Técnicas 52/17 · Bloques de 90 min · Ritmo ultradiano</footer>
+    <footer class="footer reveal" style="--d:6">Técnicas 52/17 · Bloques de 90 min · Ritmo ultradiano</footer>
   </div>
 
   <!-- ░░ PANEL DE AJUSTES ░░ -->
@@ -173,45 +186,42 @@
 
     <div class="settings-body">
 
-      <!-- Tema -->
       <div class="set-group">
-        <div class="set-title">Tema visual</div>
+        <div class="set-title">Dirección visual</div>
         <div class="theme-grid" id="setThemes">
-          <button class="theme-card" data-theme="aurora">
-            <span class="tc-swatch tc-aurora"></span>
-            <span class="tc-name">Aurora</span>
-            <span class="tc-desc">Sci-fi suave</span>
+          <button class="theme-card" data-theme="nebula">
+            <span class="tc-swatch tc-nebula"></span>
+            <span class="tc-name">Nebula</span>
+            <span class="tc-desc">Espacio profundo · sci-fi luminoso</span>
           </button>
-          <button class="theme-card" data-theme="glass">
-            <span class="tc-swatch tc-glass"></span>
-            <span class="tc-name">Glass</span>
-            <span class="tc-desc">Cristal esmerilado</span>
+          <button class="theme-card" data-theme="pulse">
+            <span class="tc-swatch tc-pulse"></span>
+            <span class="tc-name">Pulse</span>
+            <span class="tc-desc">Neón cyberpunk · alto contraste</span>
           </button>
-          <button class="theme-card" data-theme="neon">
-            <span class="tc-swatch tc-neon"></span>
-            <span class="tc-name">Neón</span>
-            <span class="tc-desc">Cyberpunk</span>
+          <button class="theme-card" data-theme="aura">
+            <span class="tc-swatch tc-aura"></span>
+            <span class="tc-name">Aura</span>
+            <span class="tc-desc">Cristal premium · capas suaves</span>
           </button>
-          <button class="theme-card" data-theme="hud">
-            <span class="tc-swatch tc-hud"></span>
-            <span class="tc-name">HUD</span>
-            <span class="tc-desc">Técnico</span>
+          <button class="theme-card" data-theme="dusk">
+            <span class="tc-swatch tc-dusk"></span>
+            <span class="tc-name">Dusk</span>
+            <span class="tc-desc">Lofi cálido · atardecer cozy</span>
           </button>
         </div>
       </div>
 
-      <!-- Fondo -->
       <div class="set-group">
         <div class="set-title">Fondo animado</div>
         <div class="bg-grid" id="setBg">
-          <button class="bg-card" data-bg="dots"><span class="bgc-prev bgc-dots"></span>Matriz</button>
+          <button class="bg-card" data-bg="particles"><span class="bgc-prev bgc-particles"></span>Partículas</button>
           <button class="bg-card" data-bg="aurora"><span class="bgc-prev bgc-aurora"></span>Aurora</button>
-          <button class="bg-card" data-bg="stars"><span class="bgc-prev bgc-stars"></span>Estrellas</button>
+          <button class="bg-card" data-bg="dots"><span class="bgc-prev bgc-dots"></span>Matriz</button>
           <button class="bg-card" data-bg="clean"><span class="bgc-prev bgc-clean"></span>Limpio</button>
         </div>
       </div>
 
-      <!-- Color de acento -->
       <div class="set-group">
         <div class="set-title">Color de acento</div>
         <div class="accent-row" id="setAccents">
@@ -228,37 +238,28 @@
         </div>
       </div>
 
-      <!-- Duraciones -->
       <div class="set-group">
         <div class="set-title">Duración personalizada</div>
         <div class="dur-row">
           <div class="dur-field">
             <label for="customWork">Trabajo</label>
-            <div class="dur-input">
-              <input type="number" id="customWork" min="1" max="180" value="45">
-              <span>min</span>
-            </div>
+            <div class="dur-input"><input type="number" id="customWork" min="1" max="180" value="45"><span>min</span></div>
           </div>
           <div class="dur-field">
             <label for="customBreak">Descanso</label>
-            <div class="dur-input">
-              <input type="number" id="customBreak" min="1" max="90" value="15">
-              <span>min</span>
-            </div>
+            <div class="dur-input"><input type="number" id="customBreak" min="1" max="90" value="15"><span>min</span></div>
           </div>
         </div>
         <button class="btn-apply" id="btnApplyCustom">Aplicar personalizado</button>
         <p class="set-hint">Activa el modo «Personalizado» en el temporizador.</p>
       </div>
 
-      <!-- Instalar -->
       <div class="set-group" id="installGroup" style="display:none">
         <div class="set-title">Aplicación</div>
         <button class="btn-apply" id="btnInstall">⬇  Instalar StudyFlow</button>
         <p class="set-hint">Instálala como app independiente en tu dispositivo.</p>
       </div>
 
-      <!-- Reset -->
       <div class="set-group">
         <button class="btn-reset-all" id="btnResetAll">Restablecer ajustes</button>
       </div>
@@ -267,5 +268,10 @@
   </aside>
 
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
 </body>
 </html>
