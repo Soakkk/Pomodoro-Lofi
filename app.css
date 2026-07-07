@@ -113,6 +113,34 @@
   --dot: color-mix(in srgb, var(--accent) 20%, rgba(255,220,200,0.05));
 }
 
+/* ── CHALKBOARD · pizarra retro ── */
+[data-theme="chalkboard"] {
+  --bg: #101216;
+  --bg-2: #191c22;
+  --accent: #10b981;
+  --accent-2: #34d399;
+  --accent-glow: rgba(16, 185, 129, 0.45);
+  --accent-soft: rgba(16, 185, 129, 0.12);
+  --accent-faint: rgba(16, 185, 129, 0.06);
+  --break: #f59e0b;
+  --break-2: #fbbf24;
+  --break-glow: rgba(245, 158, 11, 0.45);
+  --text: #f3f4f6;
+  --text-dim: #9ca3af;
+  --text-mut: #6b7280;
+  --surface: rgba(255,255,255,0.035);
+  --surface-2: rgba(255,255,255,0.065);
+  --border: rgba(255,255,255,0.08);
+  --ring-track: rgba(255,255,255,0.04);
+  --radius: 14px;
+  --radius-sm: 9px;
+  --glow-strength: 0.85;
+  --grain-opacity: 0.06;
+  --dot: color-mix(in srgb, var(--accent) 15%, rgba(255,255,255,0.03));
+}
+.tc-chalkboard { background: linear-gradient(135deg, #1b1e25, #10b981 70%); }
+
+
 /* ═══ BASE ═══ */
 html, body { height: 100%; }
 body {
@@ -516,6 +544,164 @@ body.flash::after { content: ""; position: fixed; inset: 0; z-index: 90; pointer
   .bg-aurora, .blob, .brand-mark, .timer-wrapper.running { animation: none !important; }
   .reveal { opacity: 1 !important; transform: none !important; }
   * { transition-duration: 0.01ms !important; }
+}
+
+/* ==============================
+   CHECKLIST (TO-DO LIST)
+============================== */
+.todo-list {
+  list-style: none;
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.todo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.8rem;
+  transition: all 0.2s var(--ease);
+  animation: logIn 0.3s var(--ease);
+}
+.todo-item:hover {
+  background: var(--surface-2);
+  border-color: var(--accent);
+}
+.todo-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+.todo-text {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.2s var(--ease);
+}
+.todo-item.completed .todo-text {
+  text-decoration: line-through;
+  color: var(--text-mut);
+  opacity: 0.75;
+}
+.btn-delete-todo {
+  background: none;
+  border: none;
+  color: var(--text-mut);
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px;
+  transition: color 0.2s;
+}
+.btn-delete-todo:hover {
+  color: var(--danger);
+}
+
+/* ==============================
+   SESSIONS CARD TABS & NOTES LIST
+============================== */
+.session-tab-btn {
+  transition: color 0.2s, border-bottom-color 0.2s;
+  border-bottom: 2px solid transparent !important;
+}
+.session-tab-btn.active {
+  color: var(--accent) !important;
+  border-bottom: 2px solid var(--accent) !important;
+}
+
+.recall-note-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  position: relative;
+  animation: logIn 0.4s var(--ease);
+}
+.recall-note-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--text-mut);
+}
+.recall-note-date {
+  color: var(--accent);
+  font-weight: 600;
+}
+.recall-note-intent {
+  font-style: italic;
+  max-width: 65%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recall-note-body {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin-top: 2px;
+  padding-right: 1.2rem;
+}
+.btn-delete-note {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.8rem;
+  background: none;
+  border: none;
+  color: var(--text-mut);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px;
+}
+.btn-delete-note:hover {
+  color: var(--danger);
+}
+
+/* ==============================
+   VISUAL ALARM PERSISTENT LOOP
+============================== */
+body.visual-alarm-active::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  animation: flashScreenLoop 1s infinite alternate var(--ease) !important;
+}
+@keyframes flashScreenLoop {
+  0% { box-shadow: inset 0 0 0 0 transparent; background: transparent; }
+  100% { box-shadow: inset 0 0 200px 0 rgba(251,113,133,0.3); background: rgba(251,113,133,0.06); }
+}
+
+.btn-stop-alarm {
+  animation: pulseGlow 1.5s infinite;
+}
+@keyframes pulseGlow {
+  0% { box-shadow: 0 5px 15px rgba(251,113,133,0.4); transform: translateX(-50%) scale(1); }
+  50% { box-shadow: 0 10px 30px rgba(251,113,133,0.8); transform: translateX(-50%) scale(1.04); }
+  100% { box-shadow: 0 5px 15px rgba(251,113,133,0.4); transform: translateX(-50%) scale(1); }
+}
+
+/* ==============================
+   TIMER PULSING GRAPHICS
+============================== */
+.timer-wrapper.running .time-display {
+  animation: clockGlowPulse 2.5s infinite ease-in-out;
+}
+@keyframes clockGlowPulse {
+  0%, 100% { text-shadow: 0 0 calc(26px * var(--glow-strength)) var(--phase-glow); transform: scale(1); }
+  50% { text-shadow: 0 0 calc(45px * var(--glow-strength)) var(--phase-glow); transform: scale(1.02); }
 }
 
 /* ░░ RESPONSIVE ░░ */

@@ -50,6 +50,7 @@
         <button class="tq" data-theme="pulse"  title="Pulse">Pulse</button>
         <button class="tq" data-theme="aura"   title="Aura">Aura</button>
         <button class="tq" data-theme="dusk"   title="Dusk">Dusk</button>
+        <button class="tq" data-theme="chalkboard" title="Pizarra">Pizarra</button>
       </nav>
 
       <button class="icon-btn" id="btnSettings" title="Personalizar" aria-label="Ajustes">
@@ -111,8 +112,14 @@
       <section class="cards">
 
         <div class="card card-task reveal" style="--d:2">
-          <div class="card-label">Enfoque actual</div>
-          <input class="task-input" id="taskInput" type="text" maxlength="90" placeholder="¿En qué estás trabajando?">
+          <div class="card-label">Enfoque y Tareas del día</div>
+          <div class="todo-input-row" style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+            <input class="task-input" id="todoInput" type="text" maxlength="60" placeholder="¿Qué tema vas a estudiar hoy?">
+            <button class="btn-load" id="btnAddTask" style="padding: 0 1rem;">＋</button>
+          </div>
+          <ul class="todo-list" id="todoList" style="list-style: none; margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
+            <!-- JS generated -->
+          </ul>
         </div>
 
         <div class="card card-sessions reveal" style="--d:3">
@@ -125,8 +132,18 @@
             <div class="streak-stat"><span class="streak-num" id="streakNum">0</span><span class="streak-lbl">racha de ciclos</span></div>
           </div>
           <div class="dots-row" id="dotsRow"></div>
+          
+          <div class="sessions-tabs" style="display:flex; gap:0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 4px;">
+            <button class="session-tab-btn active" id="btnShowLogs" style="background:none; border:none; color:var(--text); font-size:0.75rem; font-weight:600; cursor:pointer; padding: 4px 8px; outline:none;">Ciclos</button>
+            <button class="session-tab-btn" id="btnShowNotes" style="background:none; border:none; color:var(--text-dim); font-size:0.75rem; font-weight:600; cursor:pointer; padding: 4px 8px; outline:none;">Notas Active Recall</button>
+          </div>
+
           <div class="log-list" id="logList">
             <div class="log-empty">Aún no has completado sesiones hoy.</div>
+          </div>
+          
+          <div class="notes-list" id="notesList" style="display: none; flex-direction: column; gap: 0.5rem; max-height: 160px; overflow-y: auto;">
+            <div class="log-empty">No hay notas de repaso guardadas hoy.</div>
           </div>
         </div>
 
@@ -137,6 +154,10 @@
           <div class="spotify-input-row">
             <input class="task-input" id="spotifyUrl" type="text" placeholder="Pega aquí la URL de tu playlist de Spotify…">
             <button class="btn-load" id="btnLoadSpotify">Cargar</button>
+          </div>
+          <div class="spotify-size-row" style="display:flex; justify-content:flex-end; gap:0.5rem; margin-bottom:0.75rem;">
+            <button class="chip active" id="btnSpotifyCompact" style="font-size:0.65rem; padding:2px 8px;">Compacto</button>
+            <button class="chip" id="btnSpotifyLarge" style="font-size:0.65rem; padding:2px 8px;">Grande (Proporcional)</button>
           </div>
           <div class="chips" id="spotifyPresets">
             <button class="chip" data-pl="0vvXsWCC9xrXsKd4FyS8kM">Lofi Beats</button>
@@ -209,6 +230,11 @@
             <span class="tc-name">Dusk</span>
             <span class="tc-desc">Lofi cálido · atardecer cozy</span>
           </button>
+          <button class="theme-card" data-theme="chalkboard">
+            <span class="tc-swatch tc-chalkboard"></span>
+            <span class="tc-name">Chalkboard</span>
+            <span class="tc-desc">Pizarra retro · alta visibilidad</span>
+          </button>
         </div>
       </div>
 
@@ -261,11 +287,52 @@
       </div>
 
       <div class="set-group">
-        <button class="btn-reset-all" id="btnResetAll">Restablecer ajustes</button>
+        <div class="set-title">Volumen y Alertas</div>
+        <div class="dur-row">
+          <div class="dur-field">
+            <label for="bellVol">Volumen de alarma</label>
+            <div class="dur-input" style="display:flex; align-items:center; width:100%;">
+              <input type="range" id="bellVol" min="0" max="100" value="50" class="slider" style="flex:1;">
+              <button type="button" class="btn-apply" id="btnTestBell" style="font-size:0.75rem; padding:4px 8px; margin-left:8px; white-space:nowrap;">Probar 🔊</button>
+            </div>
+          </div>
+        </div>
+        <label class="set-hint" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-style:normal; margin-top:4px;">
+          <input type="checkbox" id="settingVisualAlarm" checked style="cursor:pointer;" /> Alerta visual persistente (Flash)
+        </label>
       </div>
 
+      <div class="set-group">
+        <div class="set-title">Copia de Seguridad</div>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <button class="btn-apply" id="btnExportCsv">📊 Exportar Historial (CSV)</button>
+          <button class="btn-apply" id="btnExportBackup">💾 Descargar Copia (JSON)</button>
+          <button class="btn-apply" id="btnImportBackup">📥 Importar Copia</button>
+          <input type="file" id="importBackupFile" style="display:none;" accept=".json" />
+        </div>
+      </div>
+
+      <div class="set-group">
+        <button class="btn-reset-all" id="btnResetAll">Restablecer ajustes</button>
+      </div>
     </div>
   </aside>
+  
+  <!-- ░░ MODAL DE ACTIVE RECALL ░░ -->
+  <div class="scrim" id="recallScrim" style="z-index: 100;"></div>
+  <div class="recall-modal" id="recallModal" role="dialog" aria-modal="true" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(440px, 90vw); background:var(--bg-2); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; box-shadow:var(--shadow); z-index:110; backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);">
+    <div class="recall-modal-head" style="margin-bottom:0.75rem;">
+      <h3 style="font-size:1.1rem; font-weight:600; color:var(--accent);">🧠 Active Recall (Recuperación)</h3>
+    </div>
+    <div class="recall-modal-body">
+      <p style="font-size:0.8rem; color:var(--text-dim); margin-bottom:0.75rem; line-height:1.4;">Para consolidar lo aprendido, escribe de memoria 3 ideas clave que acabas de estudiar:</p>
+      <textarea id="recallInput" class="task-input" placeholder="1. Concepto A&#10;2. Concepto B&#10;3. Concepto C" rows="4" style="resize:none; font-family:var(--font); font-size:0.85rem; height:90px; width:100%;"></textarea>
+      <button class="btn-apply" id="btnSaveRecall" style="width: 100%; margin-top: 1rem;">💾 Guardar repaso y descansar</button>
+    </div>
+  </div>
+
+  <!-- Botón de parada de alarma flotante -->
+  <button class="btn-stop-alarm" id="btnStopAlarm" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:95; background:var(--danger); color:#fff; border:none; padding:12px 28px; font-family:var(--font); font-weight:700; font-size:0.9rem; border-radius:var(--radius-pill); cursor:pointer; box-shadow:0 10px 30px rgba(251,113,133,0.5); letter-spacing:0.05em;">⚠️ DETENER ALARMA ⚠️</button>
 
   <script src="app.js"></script>
   <script>
