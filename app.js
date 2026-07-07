@@ -358,9 +358,9 @@ function refreshSessions() {
   const log = loadLog();
   const workEntries = log.filter(e => e.type === 'work');
   const n = workEntries.length;
-  document.getElementById('sessionsCount').textContent = `${n} completada${n!==1?'s':''}`;
   document.getElementById('focusMin').textContent = workEntries.reduce((a,e)=>a+(e.dur||0),0);
   document.getElementById('streakNum').textContent = n;
+  document.getElementById('sessionsCount').textContent = `${n} completada${n!==1?'s':''}`;
 
   const total = Math.max(n, 8);
   const row = document.getElementById('dotsRow'); row.innerHTML = '';
@@ -586,14 +586,16 @@ function applySpotifyHeight(mode) {
   settings.spotifyHeight = mode;
   saveSettings();
   const frame = document.getElementById('spotifyFrame');
-  if (mode === 'large') {
-    frame.height = '380';
-    document.getElementById('btnSpotifyLarge').classList.add('active');
-    document.getElementById('btnSpotifyCompact').classList.remove('active');
-  } else {
-    frame.height = '152';
-    document.getElementById('btnSpotifyCompact').classList.add('active');
-    document.getElementById('btnSpotifyLarge').classList.remove('active');
+  if (frame) {
+    if (mode === 'large') {
+      frame.height = '380';
+      document.getElementById('btnSpotifyLarge').classList.add('active');
+      document.getElementById('btnSpotifyCompact').classList.remove('active');
+    } else {
+      frame.height = '152';
+      document.getElementById('btnSpotifyCompact').classList.add('active');
+      document.getElementById('btnSpotifyLarge').classList.remove('active');
+    }
   }
 }
 
