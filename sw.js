@@ -1,10 +1,10 @@
 /* StudyFlow · service worker
    App shell offline · network-first en navegación para recibir updates */
-const CACHE = 'studyflow-v3';
+const CACHE = 'studyflow-v4';
 const SHELL = [
-  '/', '/index.html', '/app.css', '/app.js',
-  '/manifest.webmanifest', '/icon.svg',
-  '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png',
+  './', './index.html', './app.css', './app.js',
+  './manifest.webmanifest', './icon.svg',
+  './icon-192.png', './icon-512.png', './apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (e) => {
@@ -35,10 +35,10 @@ self.addEventListener('fetch', (e) => {
       fetch(req)
         .then(res => {
           const clone = res.clone();
-          caches.open(CACHE).then(c => c.put('/index.html', clone));
+          caches.open(CACHE).then(c => c.put('./index.html', clone));
           return res;
         })
-        .catch(() => caches.match('/index.html').then(r => r || caches.match('/')))
+        .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
     );
     return;
   }
