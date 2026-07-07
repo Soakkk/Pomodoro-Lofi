@@ -46,12 +46,13 @@
         <span class="brand-name">STUDY<span class="brand-accent">FLOW</span></span>
       </div>
 
-      <nav class="theme-quick" id="themeQuick" aria-label="Dirección visual">
-        <button class="tq" data-theme="nebula" title="Nebula">Nebula</button>
-        <button class="tq" data-theme="pulse"  title="Pulse">Pulse</button>
-        <button class="tq" data-theme="aura"   title="Aura">Aura</button>
-        <button class="tq" data-theme="dusk"   title="Dusk">Dusk</button>
-        <button class="tq" data-theme="chalkboard" title="Pizarra">Pizarra</button>
+      <nav class="theme-quick" id="ambNav" aria-label="Ambiente">
+        <button class="tq" data-amb="pizarra" title="Pizarra">Pizarra</button>
+        <button class="tq" data-amb="cosmos"  title="Cosmos">Cosmos</button>
+        <button class="tq" data-amb="boreal"  title="Boreal">Boreal</button>
+        <button class="tq" data-amb="ambar"   title="Ámbar">Ámbar</button>
+        <button class="tq" data-amb="carmesi" title="Carmesí">Carmesí</button>
+        <button class="tq" data-amb="retro"   title="Retro">Retro</button>
       </nav>
 
       <button class="icon-btn" id="btnSettings" title="Personalizar" aria-label="Ajustes">
@@ -209,60 +210,38 @@
     <div class="settings-body">
 
       <div class="set-group">
-        <div class="set-title">Dirección visual</div>
-        <div class="theme-grid" id="setThemes">
-          <button class="theme-card" data-theme="nebula">
-            <span class="tc-swatch tc-nebula"></span>
-            <span class="tc-name">Nebula</span>
-            <span class="tc-desc">Espacio profundo · sci-fi luminoso</span>
+        <div class="set-title">Ambiente</div>
+        <div class="amb-grid" id="setAmbientes">
+          <button class="amb-card" data-amb="pizarra">
+            <span class="amb-prev amb-pizarra"></span>
+            <span class="amb-name">Pizarra</span>
+            <span class="amb-desc">Verde académico · foco</span>
           </button>
-          <button class="theme-card" data-theme="pulse">
-            <span class="tc-swatch tc-pulse"></span>
-            <span class="tc-name">Pulse</span>
-            <span class="tc-desc">Neón cyberpunk · alto contraste</span>
+          <button class="amb-card" data-amb="cosmos">
+            <span class="amb-prev amb-cosmos"></span>
+            <span class="amb-name">Cosmos</span>
+            <span class="amb-desc">Violeta nebulosa</span>
           </button>
-          <button class="theme-card" data-theme="aura">
-            <span class="tc-swatch tc-aura"></span>
-            <span class="tc-name">Aura</span>
-            <span class="tc-desc">Cristal premium · capas suaves</span>
+          <button class="amb-card" data-amb="boreal">
+            <span class="amb-prev amb-boreal"></span>
+            <span class="amb-name">Boreal</span>
+            <span class="amb-desc">Cian · aurora boreal</span>
           </button>
-          <button class="theme-card" data-theme="dusk">
-            <span class="tc-swatch tc-dusk"></span>
-            <span class="tc-name">Dusk</span>
-            <span class="tc-desc">Lofi cálido · atardecer cozy</span>
+          <button class="amb-card" data-amb="ambar">
+            <span class="amb-prev amb-ambar"></span>
+            <span class="amb-name">Ámbar</span>
+            <span class="amb-desc">Cálido · niebla</span>
           </button>
-          <button class="theme-card" data-theme="chalkboard">
-            <span class="tc-swatch tc-chalkboard"></span>
-            <span class="tc-name">Chalkboard</span>
-            <span class="tc-desc">Pizarra retro · alta visibilidad</span>
+          <button class="amb-card" data-amb="carmesi">
+            <span class="amb-prev amb-carmesi"></span>
+            <span class="amb-name">Carmesí</span>
+            <span class="amb-desc">Rosa elegante</span>
           </button>
-        </div>
-      </div>
-
-      <div class="set-group">
-        <div class="set-title">Fondo animado</div>
-        <div class="bg-grid" id="setBg">
-          <button class="bg-card" data-bg="flux"><span class="bgc-prev bgc-flux"></span>Nebulosa</button>
-          <button class="bg-card" data-bg="particles"><span class="bgc-prev bgc-particles"></span>Partículas</button>
-          <button class="bg-card" data-bg="aurora"><span class="bgc-prev bgc-aurora"></span>Aurora</button>
-          <button class="bg-card" data-bg="dots"><span class="bgc-prev bgc-dots"></span>Matriz</button>
-          <button class="bg-card" data-bg="clean"><span class="bgc-prev bgc-clean"></span>Limpio</button>
-        </div>
-      </div>
-
-      <div class="set-group">
-        <div class="set-title">Color de acento</div>
-        <div class="accent-row" id="setAccents">
-          <button class="acc" data-accent="#8b7cf8" style="--a:#8b7cf8"></button>
-          <button class="acc" data-accent="#22d3ee" style="--a:#22d3ee"></button>
-          <button class="acc" data-accent="#34d399" style="--a:#34d399"></button>
-          <button class="acc" data-accent="#fbbf24" style="--a:#fbbf24"></button>
-          <button class="acc" data-accent="#fb7185" style="--a:#fb7185"></button>
-          <button class="acc" data-accent="#60a5fa" style="--a:#60a5fa"></button>
-          <label class="acc acc-custom" title="Color personalizado">
-            <input type="color" id="accentCustom" value="#8b7cf8">
-            <span class="acc-plus">+</span>
-          </label>
+          <button class="amb-card" data-amb="retro">
+            <span class="amb-prev amb-retro"></span>
+            <span class="amb-name">Retro</span>
+            <span class="amb-desc">Synthwave · rejilla</span>
+          </button>
         </div>
       </div>
 
