@@ -321,7 +321,13 @@ body {
 .ring-progress { fill: none; stroke: url(#ringGrad); stroke-width: 6; stroke-linecap: round;
   filter: url(#ringGlow) drop-shadow(0 0 calc(5px + 11px * var(--glow-strength)) var(--phase-glow));
   transition: stroke-dashoffset 0.95s linear; }
-.ring-head { fill: #fff; filter: drop-shadow(0 0 7px var(--phase)); transition: opacity 0.3s; }
+.ring-head { fill: #fff; filter: drop-shadow(0 0 7px var(--phase)) drop-shadow(0 0 15px var(--phase-glow)); transition: opacity 0.3s; }
+/* Cabeza tipo cometa: late suavemente mientras corre el temporizador */
+.timer-wrapper.running .ring-head { animation: headBeat 1.8s var(--ease) infinite; }
+@keyframes headBeat {
+  0%, 100% { filter: drop-shadow(0 0 6px var(--phase)) drop-shadow(0 0 12px var(--phase-glow)); }
+  50%      { filter: drop-shadow(0 0 12px var(--phase)) drop-shadow(0 0 26px var(--phase-glow)); }
+}
 
 .ring-pulse { position: absolute; width: 240px; height: 240px; border-radius: 50%;
   border: 2px solid var(--phase); opacity: 0; pointer-events: none; }
@@ -541,7 +547,7 @@ body.flash::after { content: ""; position: fixed; inset: 0; z-index: 90; pointer
 .shake { animation: shake 0.45s var(--ease); border-color: var(--danger) !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-aurora, .blob, .brand-mark, .timer-wrapper.running { animation: none !important; }
+  .bg-aurora, .blob, .brand-mark, .timer-wrapper.running, .timer-wrapper.running .ring-head { animation: none !important; }
   .reveal { opacity: 1 !important; transform: none !important; }
   * { transition-duration: 0.01ms !important; }
 }

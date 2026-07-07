@@ -316,15 +316,18 @@ if (ring) ring.style.strokeDasharray = CIRC;
 function setRing() {
   if (!ring) return;
   const ratio = timeLeftSecs() / totalSecs();
-  ring.style.strokeDashoffset = CIRC * (1 - ratio);
-  const theta = ratio * 2 * Math.PI;
+  const elapsed = 1 - ratio;
+  // El arco se agota en sentido HORARIO desde arriba (offset negativo invierte el trazo).
+  ring.style.strokeDashoffset = -CIRC * elapsed;
+  const theta = elapsed * 2 * Math.PI;
   if (ringHead) {
     ringHead.setAttribute('cx', (140 + R * Math.cos(theta)).toFixed(1));
     ringHead.setAttribute('cy', (140 + R * Math.sin(theta)).toFixed(1));
     ringHead.style.opacity = (ratio > 0.001 && ratio < 0.999) ? 1 : 0;
   }
-  const litCount = Math.round(ratio * tickEls.length);
-  for (let i = 0; i < tickEls.length; i++) tickEls[i].classList.toggle('lit', i < litCount);
+  // Marcas encendidas = arco restante, alineadas con el trazo horario.
+  const dimCount = Math.round(elapsed * tickEls.length);
+  for (let i = 0; i < tickEls.length; i++) tickEls[i].classList.toggle('lit', i >= dimCount);
 }
 
 /* ── Color de fase ── */
@@ -469,6 +472,19 @@ function phaseBurst() {
   document.body.classList.remove('flash'); void document.body.offsetWidth; document.body.classList.add('flash');
 }
 
+/* Celebración (canvas-confetti) al completar una sesión de enfoque. */
+function celebrate() {
+  if (typeof confetti !== 'function') return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const css = getComputedStyle(document.documentElement);
+  const c1 = css.getPropertyValue('--accent').trim() || '#8b7cf8';
+  const c2 = css.getPropertyValue('--accent-2').trim() || c1;
+  const base = { colors: [c1, c2, '#ffffff'], disableForReducedMotion: true, zIndex: 200, scalar: 0.9, ticks: 200 };
+  confetti({ ...base, particleCount: 80, spread: 75, startVelocity: 45, origin: { x: 0.5, y: 0.42 } });
+  setTimeout(() => confetti({ ...base, particleCount: 45, angle: 60,  spread: 55, origin: { x: 0, y: 0.7 } }), 130);
+  setTimeout(() => confetti({ ...base, particleCount: 45, angle: 120, spread: 55, origin: { x: 1, y: 0.7 } }), 130);
+}
+
 function phaseComplete() {
   stop();
   playBell();
@@ -487,6 +503,7 @@ function phaseComplete() {
   saveLog(log);
 
   if (s.phase === 'work') {
+    celebrate();
     openRecallModal();
   } else {
     s.phase = 'work';
