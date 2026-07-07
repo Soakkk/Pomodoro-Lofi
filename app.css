@@ -168,6 +168,10 @@ body {
 .bg-particles { opacity: 0; transition: opacity 0.8s var(--ease); }
 [data-bg="particles"] .bg-particles { opacity: 1; }
 
+/* Fondo shader WebGL (Nebulosa) */
+.bg-gl { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1s var(--ease); }
+[data-bg="flux"] .bg-gl { opacity: 1; }
+
 .bg-aurora {
   inset: -25%;
   opacity: 0; transition: opacity 0.9s var(--ease);
@@ -328,6 +332,20 @@ body {
   0%, 100% { filter: drop-shadow(0 0 6px var(--phase)) drop-shadow(0 0 12px var(--phase-glow)); }
   50%      { filter: drop-shadow(0 0 12px var(--phase)) drop-shadow(0 0 26px var(--phase-glow)); }
 }
+
+/* Brillo cónico giratorio sobre el anillo (energía viva) */
+.ring-sheen { position: absolute; width: 320px; height: 320px; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--phase) 60%, transparent) 35deg,
+    color-mix(in srgb, var(--phase-2) 75%, transparent) 55deg,
+    transparent 95deg,
+    transparent 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(50% - 30px), #000 calc(50% - 27px), #000 calc(50% - 19px), transparent calc(50% - 16px));
+          mask: radial-gradient(farthest-side, transparent calc(50% - 30px), #000 calc(50% - 27px), #000 calc(50% - 19px), transparent calc(50% - 16px));
+  opacity: 0; transition: opacity 0.7s var(--ease); mix-blend-mode: screen; will-change: transform; }
+.timer-wrapper.running .ring-sheen { opacity: 0.85; animation: sheenSpin 3.6s linear infinite; }
+@keyframes sheenSpin { to { transform: rotate(360deg); } }
 
 .ring-pulse { position: absolute; width: 240px; height: 240px; border-radius: 50%;
   border: 2px solid var(--phase); opacity: 0; pointer-events: none; }
@@ -510,6 +528,7 @@ body {
 .bgc-aurora { background: radial-gradient(circle at 30% 40%, var(--accent), transparent 60%), radial-gradient(circle at 70% 60%, var(--break), transparent 60%); }
 .bgc-dots { background-image: radial-gradient(circle, var(--accent) 1px, transparent 1px); background-size: 7px 7px; }
 .bgc-clean { background: linear-gradient(135deg, #0a0e18, #1a2240); }
+.bgc-flux { background: #05060c radial-gradient(60% 90% at 30% 20%, color-mix(in srgb, var(--accent) 75%, transparent), transparent 70%), radial-gradient(70% 80% at 78% 75%, color-mix(in srgb, var(--break) 65%, transparent), transparent 72%); }
 
 .accent-row { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; }
 .acc { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); background: var(--a);
@@ -547,7 +566,7 @@ body.flash::after { content: ""; position: fixed; inset: 0; z-index: 90; pointer
 .shake { animation: shake 0.45s var(--ease); border-color: var(--danger) !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-aurora, .blob, .brand-mark, .timer-wrapper.running, .timer-wrapper.running .ring-head { animation: none !important; }
+  .bg-aurora, .blob, .brand-mark, .timer-wrapper.running, .timer-wrapper.running .ring-head, .timer-wrapper.running .ring-sheen { animation: none !important; }
   .reveal { opacity: 1 !important; transform: none !important; }
   * { transition-duration: 0.01ms !important; }
 }

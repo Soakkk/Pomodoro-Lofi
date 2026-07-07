@@ -12,7 +12,7 @@ const MODES = {
 
 const DEFAULTS = {
   theme: 'nebula',
-  bg: 'particles',
+  bg: 'flux',
   accent: '#8b7cf8',
   mode: '52-17',
   customWork: 45,
@@ -30,9 +30,11 @@ const STATE_KEY = 'sf_state';
 const settings = loadSettings();
 /* saneado: descarta temas/fondos de versiones anteriores */
 const VALID_THEMES = ['nebula', 'pulse', 'aura', 'dusk', 'chalkboard'];
-const VALID_BGS = ['particles', 'aurora', 'dots', 'clean'];
+const VALID_BGS = ['flux', 'particles', 'aurora', 'dots', 'clean'];
 if (!VALID_THEMES.includes(settings.theme)) settings.theme = DEFAULTS.theme;
 if (!VALID_BGS.includes(settings.bg)) settings.bg = DEFAULTS.bg;
+/* migración única: estrena el fondo Nebulosa a quien venía con el antiguo por defecto */
+if (!localStorage.getItem('sf_fx1')) { if (settings.bg === 'particles') settings.bg = 'flux'; localStorage.setItem('sf_fx1', '1'); }
 
 const s = {
   mode: settings.mode in MODES ? settings.mode : '52-17',
@@ -186,9 +188,15 @@ function playBell() {
 
 /* ── Motor de sonido ambiente (sintetizado) ── */
 const Ambient = (() => {
-  let master = null, buffers = {};
+  let master = null, buffers = {}, analyser = null, freqData = null;
   let volume = settings.ambientVol / 100;
   const active = new Map();
+  function getLevel() {
+    if (!analyser) return 0;
+    analyser.getByteFrequencyData(freqData);
+    let sum = 0; for (let i = 0; i < freqData.length; i++) sum += freqData[i];
+    return (sum / freqData.length) / 255;
+  }
   function makeBuffer(type) {
     const ctx = getCtx(); const len = ctx.sampleRate * 2;
     const buf = ctx.createBuffer(1, len, ctx.sampleRate); const d = buf.getChannelData(0);
@@ -204,6 +212,8 @@ const Ambient = (() => {
   function ensure() {
     if (master) return;
     const ctx = getCtx(); master = ctx.createGain(); master.gain.value = volume; master.connect(ctx.destination);
+    analyser = ctx.createAnalyser(); analyser.fftSize = 256; analyser.smoothingTimeConstant = 0.82;
+    freqData = new Uint8Array(analyser.frequencyBinCount); master.connect(analyser);
     buffers.white = makeBuffer('white'); buffers.pink = makeBuffer('pink'); buffers.brown = makeBuffer('brown');
   }
   function src(buf) { const ctx = getCtx(); const n = ctx.createBufferSource(); n.buffer = buf; n.loop = true; return n; }
@@ -231,7 +241,7 @@ const Ambient = (() => {
     active.set(type, build(type)); return true;
   }
   function setVolume(v) { volume = v/100; settings.ambientVol = v; saveSettings(); if (master) master.gain.setTargetAtTime(volume, getCtx().currentTime, 0.05); }
-  return { toggle, setVolume };
+  return { toggle, setVolume, getLevel };
 })();
 
 /* ── Campo de partículas (canvas) ── */
@@ -279,6 +289,95 @@ const ParticleField = (() => {
   addEventListener('resize', () => { if (raf) resize(); });
   return { start, stop, setColor: c => { color = c; } };
 })();
+
+/* ── Resolución de colores CSS a rgb 0..1 (para WebGL) ── */
+const _cprobe = document.createElement('span');
+_cprobe.style.cssText = 'position:absolute;left:-9999px;opacity:0;pointer-events:none';
+document.body.appendChild(_cprobe);
+function cssRGB01(expr, fb) {
+  _cprobe.style.color = 'rgb(0,0,0)';
+  _cprobe.style.color = expr;
+  const m = getComputedStyle(_cprobe).color.match(/[\d.]+/g);
+  return (m && m.length >= 3) ? [+m[0] / 255, +m[1] / 255, +m[2] / 255] : fb;
+}
+
+/* ── Fondo shader WebGL: nebulosa viva (reacciona a fase, marcha y sonido) ── */
+const Nebula = (() => {
+  const cv = document.getElementById('glcanvas');
+  let gl = null, prog = null, raf = null, buf = null, ok = false;
+  const u = {};
+  let energy = 0.2, t0 = performance.now();
+  let c1 = [0.55, 0.49, 0.97], c2 = [0.13, 0.83, 0.93];
+  const VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}';
+  const FS = [
+    'precision highp float;',
+    'uniform vec2 uRes; uniform float uTime; uniform float uEnergy; uniform vec3 uC1; uniform vec3 uC2;',
+    'float hash(vec2 p){return fract(sin(dot(p,vec2(41.3,289.1)))*43758.5453);}',
+    'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);',
+    ' float a=hash(i),b=hash(i+vec2(1.0,0.0)),c=hash(i+vec2(0.0,1.0)),d=hash(i+vec2(1.0,1.0));',
+    ' return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}',
+    'float fbm(vec2 p){float v=0.0,a=0.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);',
+    ' for(int i=0;i<6;i++){v+=a*noise(p);p=m*p;a*=0.5;}return v;}',
+    'void main(){',
+    ' vec2 uv=(gl_FragCoord.xy-0.5*uRes)/uRes.y;',
+    ' float t=uTime*0.04*(0.5+0.9*uEnergy);',
+    ' vec2 q=vec2(fbm(uv*1.4+vec2(0.0,t)),fbm(uv*1.4+vec2(5.2,-t)));',
+    ' vec2 r=vec2(fbm(uv*1.4+1.8*q+vec2(1.7,9.2)+0.15*t),fbm(uv*1.4+1.8*q+vec2(8.3,2.8)-0.12*t));',
+    ' float f=fbm(uv*1.4+2.4*r);',
+    ' float d=length(uv);',
+    ' vec3 col=mix(uC1,uC2,clamp(f*1.3,0.0,1.0));',
+    ' col=mix(col,uC2*1.15,clamp(r.x*r.y*2.2,0.0,1.0));',
+    ' float glow=smoothstep(1.15,0.0,d);',
+    ' float bright=(0.10+0.55*f)*glow*(0.55+1.0*uEnergy);',
+    ' vec3 outc=vec3(0.015,0.02,0.045)+col*bright;',
+    ' outc+=col*pow(f,3.0)*0.5*uEnergy;',
+    ' outc*=smoothstep(1.5,0.15,d);',
+    ' gl_FragColor=vec4(outc,1.0);}'
+  ].join('\n');
+  function sh(type, src) { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return gl.getShaderParameter(x, gl.COMPILE_STATUS) ? x : null; }
+  function init() {
+    if (ok) return true;
+    if (!cv) return false;
+    try { gl = cv.getContext('webgl', { antialias: false, alpha: false }) || cv.getContext('experimental-webgl'); } catch (e) { gl = null; }
+    if (!gl) return false;
+    const vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+    if (!vs || !fs) return false;
+    prog = gl.createProgram(); gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return false;
+    gl.useProgram(prog);
+    buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    u.res = gl.getUniformLocation(prog, 'uRes'); u.time = gl.getUniformLocation(prog, 'uTime');
+    u.energy = gl.getUniformLocation(prog, 'uEnergy'); u.c1 = gl.getUniformLocation(prog, 'uC1'); u.c2 = gl.getUniformLocation(prog, 'uC2');
+    ok = true; return true;
+  }
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    cv.width = Math.floor(innerWidth * dpr); cv.height = Math.floor(innerHeight * dpr);
+    if (gl) gl.viewport(0, 0, cv.width, cv.height);
+  }
+  function frame() {
+    const base = s.running ? 0.62 : 0.22;
+    const audio = (Ambient && Ambient.getLevel) ? Ambient.getLevel() : 0;
+    const target = Math.min(1.4, base + audio * 0.9);
+    energy += (target - energy) * 0.06;
+    gl.uniform2f(u.res, cv.width, cv.height);
+    gl.uniform1f(u.time, (performance.now() - t0) / 1000);
+    gl.uniform1f(u.energy, energy);
+    gl.uniform3f(u.c1, c1[0], c1[1], c1[2]);
+    gl.uniform3f(u.c2, c2[0], c2[1], c2[2]);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    raf = requestAnimationFrame(frame);
+  }
+  function start() { if (raf) return; if (!init()) return; resize(); raf = requestAnimationFrame(frame); }
+  function stop() { if (raf) cancelAnimationFrame(raf); raf = null; }
+  addEventListener('resize', () => { if (raf) resize(); });
+  return { start, stop, supported: init, setColors: (a, b) => { c1 = a; c2 = b; } };
+})();
+function syncNebulaColors() {
+  Nebula.setColors(cssRGB01('var(--phase)', [0.55, 0.49, 0.97]), cssRGB01('var(--phase-2)', [0.13, 0.83, 0.93]));
+}
 
 /* ── Marcas (ticks) alrededor del anillo ── */
 (function buildTicks() {
@@ -335,6 +434,7 @@ function applyPhaseColor() {
   const root = document.documentElement.style;
   if (s.phase === 'work') { root.setProperty('--phase','var(--accent)'); root.setProperty('--phase-2','var(--accent-2)'); root.setProperty('--phase-glow','var(--accent-glow)'); }
   else { root.setProperty('--phase','var(--break)'); root.setProperty('--phase-2','var(--break-2)'); root.setProperty('--phase-glow','var(--break-glow)'); }
+  if (typeof syncNebulaColors === 'function') syncNebulaColors();
 }
 
 /* ── Refresco UI ── */
@@ -413,6 +513,7 @@ function saveRecallNote() {
   saveStateSnapshot();
   applyPhaseColor();
   refreshDisplay();
+  phaseTransition();
   refreshSessions();
   showNotification('🧠 Nota de repaso guardada.');
 }
@@ -472,6 +573,15 @@ function phaseBurst() {
   document.body.classList.remove('flash'); void document.body.offsetWidth; document.body.classList.add('flash');
 }
 
+/* Transición cinemática al cambiar de fase (GSAP; degrada sin GSAP). */
+function phaseTransition() {
+  if (!window.gsap || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  const disp = document.getElementById('timeDisplay');
+  const badge = document.getElementById('phaseBadge');
+  if (disp) gsap.fromTo(disp, { scale: 0.72, opacity: 0.25 }, { scale: 1, opacity: 1, duration: 0.75, ease: 'back.out(1.7)', clearProps: 'transform,opacity' });
+  if (badge) gsap.fromTo(badge, { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: 'power3.out', clearProps: 'transform,opacity' });
+}
+
 /* Celebración (canvas-confetti) al completar una sesión de enfoque. */
 function celebrate() {
   if (typeof confetti !== 'function') return;
@@ -512,6 +622,7 @@ function phaseComplete() {
     saveStateSnapshot();
     applyPhaseColor();
     refreshDisplay();
+    phaseTransition();
     refreshSessions();
   }
 }
@@ -566,10 +677,13 @@ function applyTheme(theme) {
   syncParticleColor();
 }
 function applyBg(bg) {
+  // Si se pide Nebulosa pero no hay WebGL, cae a partículas.
+  if (bg === 'flux' && !Nebula.supported()) bg = 'particles';
   document.documentElement.setAttribute('data-bg', bg);
   settings.bg = bg; saveSettings();
   document.querySelectorAll('.bg-card').forEach(b => b.classList.toggle('active', b.dataset.bg === bg));
   if (bg === 'particles') ParticleField.start(); else ParticleField.stop();
+  if (bg === 'flux') { syncNebulaColors(); Nebula.start(); } else Nebula.stop();
 }
 function applyAccent(hex) {
   document.documentElement.style.setProperty('--accent', hex);
@@ -581,6 +695,7 @@ function applyAccent(hex) {
 function syncParticleColor() {
   const c = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
   if (c) ParticleField.setColor(c);
+  syncNebulaColors();
 }
 
 /* ── Spotify ── */
@@ -703,9 +818,9 @@ function escapeHTML(str) {
 }
 
 /* ═══ EVENTOS ═══ */
-document.getElementById('btnPlay').addEventListener('click', () => { if (s.running) stop(); else start(); refreshDisplay(); });
+document.getElementById('btnPlay').addEventListener('click', () => { if (s.running) stop(); else start(); refreshDisplay(); if (window.gsap) gsap.fromTo('#btnPlay', { scale: 0.86 }, { scale: 1, duration: 0.55, ease: 'elastic.out(1,0.5)', clearProps: 'transform' }); });
 document.getElementById('btnReset').addEventListener('click', () => { stop(); s.elapsedMs = 0; s.startTs = null; s.endTime = null; refreshDisplay(); });
-document.getElementById('btnSkip').addEventListener('click', () => { stop(); if (s.phase === 'work') s.phase='brk'; else { s.phase='work'; s.cycle++; } s.elapsedMs=0; s.startTs=null; s.endTime=null; applyPhaseColor(); refreshDisplay(); });
+document.getElementById('btnSkip').addEventListener('click', () => { stop(); if (s.phase === 'work') s.phase='brk'; else { s.phase='work'; s.cycle++; } s.elapsedMs=0; s.startTs=null; s.endTime=null; applyPhaseColor(); refreshDisplay(); phaseTransition(); });
 document.addEventListener('keydown', (e) => { if (e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); stopVisualAlarm(); if (s.running) stop(); else start(); refreshDisplay(); } });
 document.getElementById('modeTabs').addEventListener('click', (e) => { const tab = e.target.closest('.mode-tab'); if (tab) setMode(tab.dataset.mode); });
 document.getElementById('themeQuick').addEventListener('click', (e) => { const b = e.target.closest('.tq'); if (b) applyTheme(b.dataset.theme); });
@@ -796,6 +911,10 @@ if (btnResetStats) {
 window.addEventListener('load', () => {
   setTimeout(() => document.getElementById('app').classList.add('ready'), 80);
   setTimeout(() => { const i = document.getElementById('intro'); if (i) i.classList.add('done'); }, 1900);
+  // Entrada del reloj con GSAP (aditiva; degrada sin GSAP y con reduce-motion)
+  if (window.gsap && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    gsap.from('#timerWrapper', { delay: 1.9, scale: 0.82, opacity: 0, duration: 1.1, ease: 'power3.out', clearProps: 'transform,opacity' });
+  }
 });
 
 /* ═══ PWA ═══ */
@@ -833,6 +952,7 @@ applySpotifyHeight(settings.spotifyHeight || 'compact');
 renderTodoList();
 
 loadStateSnapshot();
+applyPhaseColor(); refreshDisplay();   // inicializa el anillo también en la primera visita (sin estado guardado)
 refreshSessions();
 if ('Notification' in window && Notification.permission === 'default') {
   Notification.requestPermission();
