@@ -820,4 +820,3 @@ refreshSessions();
 if ('Notification' in window && Notification.permission === 'default') {
   Notification.requestPermission();
 }
-})();

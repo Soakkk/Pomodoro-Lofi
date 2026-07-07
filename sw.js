@@ -1,6 +1,6 @@
 /* StudyFlow · service worker
    App shell offline · network-first en navegación para recibir updates */
-const CACHE = 'studyflow-v2';
+const CACHE = 'studyflow-v3';
 const SHELL = [
   '/', '/index.html', '/app.css', '/app.js',
   '/manifest.webmanifest', '/icon.svg',
