@@ -548,7 +548,7 @@ const Mascot = (() => {
     }
   }
   function tick() {
-    if (!el || el.style.display === 'none') return;
+    if (!el || el.style.display === 'none' || document.hidden) return;
     if (Date.now() > partyUntil) state = s.running ? 'study' : 'sleep';
     frame = 1 - frame;
     el.classList.toggle('sleeping', state === 'sleep');

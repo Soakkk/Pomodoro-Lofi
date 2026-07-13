@@ -620,57 +620,76 @@ body.visual-alarm-active::after {
   content: attr(data-text); position: absolute; left: 0; top: 0;
   opacity: 0; pointer-events: none;
 }
-.brand-name::before { color: #f0f; animation: brandGlitch 7s steps(2, end) infinite; }
-.brand-name::after  { color: #0ff; animation: brandGlitch 7s steps(2, end) 0.07s infinite; }
+.brand-name::before { color: #f0f; animation: brandGlitch 12s steps(2, end) infinite; }
+.brand-name::after  { color: #0ff; animation: brandGlitch 12s steps(2, end) 0.06s infinite; }
 @keyframes brandGlitch {
-  0%, 93%, 100% { opacity: 0; transform: none; }
-  94% { opacity: 0.75; transform: translate(-2px, 1px); }
-  96% { opacity: 0.75; transform: translate(2px, -1px); }
-  98% { opacity: 0.5; transform: translate(-1px, 0); }
+  0%, 96.2%, 100% { opacity: 0; transform: none; }
+  96.8% { opacity: 0.4; transform: translate(-1px, 1px); }
+  97.6% { opacity: 0.4; transform: translate(1px, -1px); }
+  98.4% { opacity: 0.25; transform: translate(-1px, 0); }
 }
 
 /* ── Aro decorativo + órbita de píxeles alrededor del anillo ── */
+/* aro y órbita comparten diámetro: los satélites viajan exactamente
+   sobre el aro punteado, por fuera de las marcas del anillo */
 .deco-ring {
-  position: absolute; width: 300px; height: 300px; border-radius: 50%;
-  border: 2px dashed var(--ring-track); pointer-events: none; opacity: 0.55;
+  position: absolute; width: 316px; height: 316px; border-radius: 50%;
+  border: 2px dashed var(--ring-track); pointer-events: none; opacity: 0.4;
   transition: border-color 0.5s, opacity 0.5s;
 }
 .timer-wrapper.running .deco-ring {
-  border-color: color-mix(in srgb, var(--phase) 45%, transparent); opacity: 1;
-  animation: spinSlow 24s linear infinite;
+  border-color: color-mix(in srgb, var(--phase) 40%, transparent); opacity: 1;
+  animation: spinSlow 30s linear infinite;
 }
 @keyframes spinSlow { to { transform: rotate(360deg); } }
 .orbit {
-  position: absolute; width: 336px; height: 336px; pointer-events: none;
+  position: absolute; width: 316px; height: 316px; pointer-events: none;
   opacity: 0; transition: opacity 0.5s;
 }
-.timer-wrapper.running .orbit { opacity: 1; animation: spinSlow 13s linear infinite; }
-.orbit span { position: absolute; background: var(--phase); box-shadow: 0 0 9px var(--phase-glow); }
-.orbit span:nth-child(1) { top: -2px; left: 50%; width: 8px; height: 8px; }
-.orbit span:nth-child(2) { bottom: 9%; left: 11%; width: 6px; height: 6px; opacity: 0.85; }
-.orbit span:nth-child(3) { top: 28%; right: 0; width: 5px; height: 5px; opacity: 0.65; }
+.timer-wrapper.running .orbit { opacity: 1; animation: spinSlow 16s linear infinite; }
+.orbit span { position: absolute; transform: translate(-50%, -50%);
+  background: var(--phase); box-shadow: 0 0 6px var(--phase-glow); }
+/* tres satélites a 120° sobre el mismo círculo */
+.orbit span:nth-child(1) { top: 0;   left: 50%;   width: 7px; height: 7px; }
+.orbit span:nth-child(2) { top: 75%; left: 6.7%;  width: 5px; height: 5px; opacity: 0.8; }
+.orbit span:nth-child(3) { top: 75%; left: 93.3%; width: 5px; height: 5px; opacity: 0.6; }
 
-/* ── Play con borde de "hormigas marchando" cuando corre ── */
+/* ── Play: hormigas marchando de verdad (los guiones recorren el borde) ── */
 .ctrl-play::before {
   content: ""; position: absolute; inset: -9px;
-  border: 2px dashed color-mix(in srgb, var(--phase) 75%, #fff);
+  --ant: color-mix(in srgb, var(--phase) 75%, #fff);
+  background-image:
+    repeating-linear-gradient(90deg, var(--ant) 0 6px, transparent 6px 12px),
+    repeating-linear-gradient(90deg, var(--ant) 0 6px, transparent 6px 12px),
+    repeating-linear-gradient(0deg,  var(--ant) 0 6px, transparent 6px 12px),
+    repeating-linear-gradient(0deg,  var(--ant) 0 6px, transparent 6px 12px);
+  background-size: 100% 2px, 100% 2px, 2px 100%, 2px 100%;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: no-repeat;
   opacity: 0; transition: opacity 0.3s;
 }
-body.running .ctrl-play::before { opacity: 1; animation: spinSlow 8s linear infinite; }
+body.running .ctrl-play::before { opacity: 1; animation: antsMarch 0.9s steps(6, end) infinite; }
+@keyframes antsMarch {
+  to { background-position: 12px 0, -12px 100%, 0 -12px, 100% 12px; }
+}
 
-/* ── Contadores: pop al subir ── */
-.streak-num { transition: color 0.3s; }
-.num-pop { animation: numPop 0.45s steps(3, end); color: var(--accent) !important; }
-@keyframes numPop { 0% { transform: scale(1.4); } 100% { transform: scale(1); } }
+/* ── Contadores: pop al subir (el color vuelve solo al terminar) ── */
+.streak-num { display: inline-block; transform-origin: left center; }
+.num-pop { animation: numPop 0.6s steps(4, end); }
+@keyframes numPop {
+  0%   { transform: scale(1.35); color: var(--accent); }
+  70%  { transform: scale(1);    color: var(--accent); }
+  100% { transform: scale(1);    color: var(--text); }
+}
 
 /* ── Terremoto de pantalla al terminar fase ── */
-body.quake { animation: quake 0.5s steps(10, end); }
+body.quake { animation: quake 0.4s steps(8, end); }
 @keyframes quake {
   0%, 100% { transform: none; }
-  20% { transform: translate(4px, -3px); }
-  40% { transform: translate(-4px, 3px); }
-  60% { transform: translate(3px, 2px); }
-  80% { transform: translate(-3px, -2px); }
+  20% { transform: translate(3px, -2px); }
+  40% { transform: translate(-3px, 2px); }
+  60% { transform: translate(2px, 1px); }
+  80% { transform: translate(-2px, -1px); }
 }
 
 /* ── Ecualizador pixel del sonido ambiente ── */
@@ -755,8 +774,8 @@ body.quake { animation: quake 0.5s steps(10, end); }
   .brand { font-size: 0.68rem; }
   .mascot { right: -8px; bottom: -30px; width: 66px; }
   .mascot canvas { width: 66px; height: 54px; }
-  .deco-ring { width: 262px; height: 262px; }
-  .orbit { width: 294px; height: 294px; }
+  .deco-ring { width: 278px; height: 278px; }
+  .orbit { width: 278px; height: 278px; }
   .heatmap, .heatmap-months { grid-auto-columns: 11px; grid-template-columns: repeat(20, 11px); }
   .heatmap { grid-template-rows: repeat(7, 11px); }
   .hm-cell { width: 11px; height: 11px; }
