@@ -263,7 +263,7 @@ const ParticleField = (() => {
     parts = [];
     for (let i = 0; i < n; i++) parts.push({
       x: Math.random()*W, y: Math.random()*H,
-      r: (Math.random()*1.6 + 0.4) * dpr,
+      r: (Math.random() < 0.25 ? 3 : 2) * dpr,
       drift: (Math.random()-0.5) * 0.12 * dpr,
       vy: -(Math.random()*0.18 + 0.05) * dpr,
       a: Math.random()*6.28, tw: Math.random()*0.5 + 0.4,
@@ -278,10 +278,12 @@ const ParticleField = (() => {
       p.x += p.drift * boost; p.y += p.vy * boost;
       if (p.y < -10) { p.y = H + 10; p.x = Math.random()*W; }
       if (p.x < -10) p.x = W + 10; else if (p.x > W+10) p.x = -10;
-      const flick = 0.45 + 0.55 * Math.sin(t * 0.001 * p.tw + p.a);
-      cx.globalAlpha = (0.12 + flick * 0.5) * (p.tint ? 1 : 0.7);
+      /* PIXEL ART: cuadrados con parpadeo escalonado (2 niveles), posición snapeada */
+      const flick = Math.sin(t * 0.001 * p.tw + p.a) > 0 ? 1 : 0.45;
+      cx.globalAlpha = (0.15 + flick * 0.5) * (p.tint ? 1 : 0.7);
       cx.fillStyle = p.tint ? color : '#cdd6ff';
-      cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.2832); cx.fill();
+      const sz = p.r * 2, gx = Math.round(p.x / sz) * sz, gy = Math.round(p.y / sz) * sz;
+      cx.fillRect(gx, gy, sz, sz);
     }
     cx.globalAlpha = 1;
     raf = requestAnimationFrame(frame);
@@ -405,8 +407,11 @@ const Nebula = (() => {
     ok = true; return true;
   }
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    cv.width = Math.floor(innerWidth * dpr); cv.height = Math.floor(innerHeight * dpr);
+    /* PIXEL ART: renderiza a baja resolución; el CSS lo escala con
+       image-rendering:pixelated → píxeles gordos + mucho menos coste de GPU */
+    const scale = 0.22;
+    cv.width = Math.max(160, Math.floor(innerWidth * scale));
+    cv.height = Math.max(90, Math.floor(innerHeight * scale));
     if (gl) gl.viewport(0, 0, cv.width, cv.height);
   }
   function frame() {
@@ -736,8 +741,8 @@ function applyAmbiente(id) {
   settings.ambiente = amb.id; settings.theme = amb.id; settings.bg = 'flux';
   settings.accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || settings.accent;
   saveSettings();
-  ParticleField.stop();
   if (Nebula.supported()) { Nebula.setStyle(amb.style); Nebula.start(); }
+  ParticleField.start(); syncParticleColor();   // píxeles flotantes sobre el shader
   applyPhaseColor();   // fija --phase y sincroniza el color del shader
   const meta = document.getElementById('metaTheme');
   if (meta) { const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(); if (bg) meta.content = bg; }
@@ -907,7 +912,7 @@ document.getElementById('ambientVol').addEventListener('input', e => Ambient.set
 
 /* ── Alarma y volumen ── */
 document.getElementById('bellVol').addEventListener('input', (e) => { settings.bellVol = parseInt(e.target.value); saveSettings(); });
-document.getElementById('btnTestBell').addEventListener('click', () => { initAudioContext(); playBell(); showNotification('🔊 Tono de prueba reproducido.'); });
+document.getElementById('btnTestBell').addEventListener('click', () => { getCtx(); playBell(); showNotification('🔊 Tono de prueba reproducido.'); });
 document.getElementById('settingVisualAlarm').addEventListener('change', (e) => { settings.visualAlarm = e.target.checked; saveSettings(); });
 document.getElementById('btnStopAlarm').addEventListener('click', stopVisualAlarm);
 
@@ -950,7 +955,7 @@ if (btnResetStats) {
     if (!confirm('¿Borrar todas las estadísticas? Esta acción no se puede deshacer.')) return;
     stopVisualAlarm();
     localStorage.removeItem(todayKey());
-    renderStats();
+    refreshSessions();
     showNotification('📊 Estadísticas borradas.');
   });
 }
@@ -963,6 +968,12 @@ window.addEventListener('load', () => {
   if (window.gsap && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
     gsap.from('#timerWrapper', { delay: 1.9, scale: 0.82, opacity: 0, duration: 1.1, ease: 'power3.out', clearProps: 'transform,opacity' });
   }
+});
+
+/* ── Optimización: pausa el render de fondos cuando la pestaña no se ve ── */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { Nebula.stop(); ParticleField.stop(); }
+  else if (Nebula.supported()) { Nebula.start(); ParticleField.start(); }
 });
 
 /* ═══ PWA ═══ */
