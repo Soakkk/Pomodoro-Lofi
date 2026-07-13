@@ -89,6 +89,10 @@
             <circle class="ring-head" id="ringHead" r="5"></circle>
           </svg>
           <div class="ring-pulse" id="ringPulse" aria-hidden="true"></div>
+          <div class="mascot" id="mascot" aria-hidden="true">
+            <canvas id="mascotCv" width="16" height="13"></canvas>
+            <span class="mascot-z" id="mascotZ">Z</span>
+          </div>
           <div class="timer-center">
             <span class="phase-badge" id="phaseBadge">Trabajo</span>
             <div class="time-display" id="timeDisplay">52:00</div>
@@ -138,6 +142,7 @@
           <div class="sessions-tabs" style="display:flex; gap:0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 4px;">
             <button class="session-tab-btn active" id="btnShowLogs" style="background:none; border:none; color:var(--text); font-size:0.75rem; font-weight:600; cursor:pointer; padding: 4px 8px; outline:none;">Ciclos</button>
             <button class="session-tab-btn" id="btnShowNotes" style="background:none; border:none; color:var(--text-dim); font-size:0.75rem; font-weight:600; cursor:pointer; padding: 4px 8px; outline:none;">Notas Active Recall</button>
+            <button class="session-tab-btn" id="btnShowHeat" style="background:none; border:none; color:var(--text-dim); font-size:0.75rem; font-weight:600; cursor:pointer; padding: 4px 8px; outline:none;">Actividad</button>
           </div>
 
           <div class="log-list" id="logList">
@@ -146,6 +151,13 @@
           
           <div class="notes-list" id="notesList" style="display: none; flex-direction: column; gap: 0.5rem; max-height: 160px; overflow-y: auto;">
             <div class="log-empty">No hay notas de repaso guardadas hoy.</div>
+          </div>
+
+          <div class="heatmap-wrap" id="heatmapWrap" style="display:none;">
+            <div class="heatmap-totals" id="heatmapTotals"></div>
+            <div class="heatmap-months" id="heatmapMonths"></div>
+            <div class="heatmap" id="heatmap"></div>
+            <div class="heatmap-legend">Menos <span class="hm-cell lvl-0"></span><span class="hm-cell lvl-1"></span><span class="hm-cell lvl-2"></span><span class="hm-cell lvl-3"></span><span class="hm-cell lvl-4"></span> Más</div>
           </div>
         </div>
 
@@ -284,6 +296,13 @@
       </div>
 
       <div class="set-group">
+        <div class="set-title">Mascota</div>
+        <label class="set-hint" style="display:flex; align-items:center; gap:6px; cursor:pointer; font-style:normal;">
+          <input type="checkbox" id="settingMascot" checked style="cursor:pointer;" /> 🐱 Mascota pixel junto al temporizador
+        </label>
+      </div>
+
+      <div class="set-group">
         <div class="set-title">Copia de Seguridad</div>
         <div style="display:flex; flex-direction:column; gap:0.5rem;">
           <button class="btn-apply" id="btnExportCsv">📊 Exportar Historial (CSV)</button>
@@ -311,6 +330,9 @@
       <button class="btn-apply" id="btnSaveRecall" style="width: 100%; margin-top: 1rem;">💾 Guardar repaso y descansar</button>
     </div>
   </div>
+
+  <!-- Tooltip del heatmap -->
+  <div class="hm-tip" id="hmTip" aria-hidden="true"></div>
 
   <!-- Toast de notificaciones -->
   <div class="notification" id="notification" role="status" aria-live="polite"></div>

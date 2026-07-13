@@ -22,7 +22,8 @@ const DEFAULTS = {
   ambientVol: 50,
   bellVol: 50,
   visualAlarm: true,
-  spotifyHeight: 'compact'
+  spotifyHeight: 'compact',
+  mascot: true
 };
 
 const TASKS_KEY = 'studyflow_tasks';
@@ -172,20 +173,48 @@ function getCtx() {
   return _ctx;
 }
 function playBell() {
+  /* Fanfarria chiptune 8-bit: arpegio de onda cuadrada estilo Game Boy */
   try {
     const ctx = getCtx();
     const factor = (settings.bellVol || 50) / 100;
-    [[880, 0], [1108.7, 0.26], [1318.5, 0.52]].forEach(([freq, delay]) => {
+    const notes = [[523.25, 0], [659.25, 0.11], [783.99, 0.22], [1046.5, 0.33], [1046.5, 0.55]];
+    notes.forEach(([freq, delay], i) => {
       const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination); osc.type = 'sine';
+      osc.connect(gain); gain.connect(ctx.destination); osc.type = 'square';
       const t = ctx.currentTime + delay;
+      const last = i === notes.length - 1;
       osc.frequency.setValueAtTime(freq, t);
       gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.3 * factor, t + 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.0008, t + 1.5);
-      osc.start(t); osc.stop(t + 1.6);
+      gain.gain.linearRampToValueAtTime(0.12 * factor, t + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0008, t + (last ? 0.7 : 0.14));
+      osc.start(t); osc.stop(t + (last ? 0.75 : 0.16));
     });
   } catch (e) {}
+}
+
+/* ── Notificaciones del sistema (cuando la pestaña no está visible) ── */
+function notifyPhase(finishedPhase) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (!document.hidden) return;
+  try {
+    const isWork = finishedPhase === 'work';
+    new Notification(isWork ? '🎉 ¡Ciclo de enfoque completado!' : '⏰ Fin del descanso', {
+      body: isWork ? 'Toca hacer Active Recall y descansar.' : 'Vuelve al estudio: empieza un nuevo ciclo.',
+      icon: 'icon-192.png',
+      tag: 'studyflow-phase'
+    });
+  } catch (e) {}
+}
+
+/* ── Wake Lock: evita que el móvil apague la pantalla con el timer en marcha ── */
+let _wakeLock = null;
+async function acquireWakeLock() {
+  try { if ('wakeLock' in navigator) _wakeLock = await navigator.wakeLock.request('screen'); }
+  catch (e) { _wakeLock = null; }
+}
+function releaseWakeLock() {
+  try { if (_wakeLock) _wakeLock.release(); } catch (e) {}
+  _wakeLock = null;
 }
 
 /* ── Motor de sonido ambiente (sintetizado) ── */
@@ -437,6 +466,151 @@ function syncNebulaColors() {
   Nebula.setColors(cssRGB01('var(--phase)', [0.55, 0.49, 0.97]), cssRGB01('var(--phase-2)', [0.13, 0.83, 0.93]));
 }
 
+/* ── Mascota pixel: gato sprite en canvas 16×13 ── */
+const Mascot = (() => {
+  const el = document.getElementById('mascot');
+  const cv = document.getElementById('mascotCv');
+  const ctx = cv ? cv.getContext('2d') : null;
+  const PAL = { k:'#16161f', b:'#d9a066', d:'#b07038', e:'#2b2b3a', p:'#e07a9a', w:'#fff8ee' };
+  /* base del gato; los ojos (fila 4) y la cola (filas 8-10) cambian por estado */
+  function cat(eyes, tailUp) {
+    const eyeRow = eyes === 'open'  ? '.kbbebbbbbbebbk.'
+                 : eyes === 'happy' ? '.kbekbbbbbbkebk.'
+                 :                    '.kbkkbbbbbbkkbk.'; // cerrados
+    return [
+      '...kk......kk...',
+      '..kbbk....kbbk..',
+      '.kbbbbkkkkbbbbk.',
+      '.kbbbbbbbbbbbbk.',
+      eyeRow,
+      '.kbbbbbkkbbbbbk.',
+      '.kbbbbkppkbbbbk.',
+      '..kbbbbbbbbbbk..',
+      tailUp ? '..kbbbbbbbbbbkk.' : '..kbbbbbbbbbbk..',
+      tailUp ? '.kbbbbbbbbbbbkdk' : '.kbbbbbbbbbbbbk.',
+      tailUp ? '.kbdbbbbbbbdbkk.' : '.kbdbbbbbbbdbkdk',
+      '.kbbbbbbbbbbbkk.',
+      '..kkkkkkkkkkk...'
+    ];
+  }
+  const FRAMES = {
+    study: [cat('open', false), cat('open', true)],
+    sleep: [cat('closed', false), cat('closed', false)],
+    party: [cat('happy', true), cat('happy', false)]
+  };
+  let state = 'sleep', frame = 0, partyUntil = 0, loop = null;
+  function draw(map) {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, 16, 13);
+    for (let y = 0; y < map.length; y++) for (let x = 0; x < 16; x++) {
+      const c = PAL[map[y][x]];
+      if (c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
+    }
+  }
+  function tick() {
+    if (!el || el.style.display === 'none') return;
+    if (Date.now() > partyUntil) state = s.running ? 'study' : 'sleep';
+    frame = 1 - frame;
+    el.classList.toggle('sleeping', state === 'sleep');
+    el.classList.toggle('partying', state === 'party');
+    draw(FRAMES[state][frame]);
+  }
+  function party() { partyUntil = Date.now() + 3800; state = 'party'; tick(); }
+  function enable(on) {
+    if (!el) return;
+    el.style.display = on ? '' : 'none';
+    if (on && !loop) { loop = setInterval(tick, 420); tick(); }
+    if (!on && loop) { clearInterval(loop); loop = null; }
+  }
+  return { party, enable };
+})();
+
+/* ── Heatmap de actividad (estilo GitHub): cuadritos por día ── */
+const HM_WEEKS = 20;
+function allFocusByDay() {
+  const map = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith('sf_log_')) continue;
+    try {
+      const log = JSON.parse(localStorage.getItem(key) || '[]');
+      map[key.slice(7)] = log.filter(e => e.type === 'work').reduce((a, e) => a + (e.dur || 0), 0);
+    } catch (e) {}
+  }
+  return map;
+}
+function fmtMin(min) {
+  if (min <= 0) return 'Sin estudio';
+  return min >= 60 ? `${Math.floor(min/60)}h ${min%60}m de enfoque` : `${min} min de enfoque`;
+}
+function hmLevel(min) {
+  if (min <= 0) return 0;
+  if (min < 30) return 1;
+  if (min < 60) return 2;
+  if (min < 120) return 3;
+  return 4;
+}
+function localISO(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function renderHeatmap() {
+  const grid = document.getElementById('heatmap');
+  const monthsRow = document.getElementById('heatmapMonths');
+  const totals = document.getElementById('heatmapTotals');
+  if (!grid) return;
+  const byDay = allFocusByDay();
+  const MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const today = new Date(); today.setHours(0,0,0,0);
+  /* la última columna termina en el día de hoy; columnas = semanas (lun-dom) */
+  const dow = (today.getDay() + 6) % 7;               // 0 = lunes
+  const start = new Date(today);
+  start.setDate(start.getDate() - dow - (HM_WEEKS - 1) * 7);
+
+  let cells = '', months = '', lastMonth = -1;
+  let weekMin = 0, monthMin = 0;
+  const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - dow);
+
+  for (let w = 0; w < HM_WEEKS; w++) {
+    const colDate = new Date(start); colDate.setDate(colDate.getDate() + w * 7);
+    const m = colDate.getMonth();
+    months += `<span>${(m !== lastMonth && colDate.getDate() <= 7) || w === 0 ? MONTHS[m] : ''}</span>`;
+    lastMonth = m;
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(start); day.setDate(day.getDate() + w * 7 + d);
+      if (day > today) { cells += '<span class="hm-cell hm-future"></span>'; continue; }
+      const iso = localISO(day);
+      const min = byDay[iso] || 0;
+      if (day >= weekStart) weekMin += min;
+      if (day.getMonth() === today.getMonth() && day.getFullYear() === today.getFullYear()) monthMin += min;
+      const tip = `${day.getDate()} ${MONTHS[day.getMonth()]} · ${fmtMin(min)}`;
+      cells += `<span class="hm-cell lvl-${hmLevel(min)}" data-tip="${tip}"></span>`;
+    }
+  }
+  grid.innerHTML = cells;
+  if (monthsRow) monthsRow.innerHTML = months;
+  if (totals) {
+    const f = (m) => m >= 60 ? `${Math.floor(m/60)}h ${m%60}m` : `${m}m`;
+    totals.innerHTML = `Esta semana: <b>${f(weekMin)}</b> · Este mes: <b>${f(monthMin)}</b>`;
+  }
+}
+/* tooltip flotante */
+(function hmTooltip() {
+  const tip = document.getElementById('hmTip');
+  const grid = document.getElementById('heatmap');
+  if (!tip || !grid) return;
+  grid.addEventListener('mouseover', (e) => {
+    const c = e.target.closest('.hm-cell[data-tip]');
+    if (!c) { tip.classList.remove('show'); return; }
+    tip.textContent = c.dataset.tip;
+    const r = c.getBoundingClientRect();
+    tip.classList.add('show');
+    const tw = tip.offsetWidth;
+    tip.style.left = Math.max(8, Math.min(innerWidth - tw - 8, r.left + r.width/2 - tw/2)) + 'px';
+    tip.style.top = (r.top - 34) + 'px';
+  });
+  grid.addEventListener('mouseleave', () => tip.classList.remove('show'));
+})();
+
 /* ── Marcas (ticks) alrededor del anillo ── */
 (function buildTicks() {
   const g = document.getElementById('ticks');
@@ -536,6 +710,7 @@ function refreshSessions() {
   }).join(''); }
   
   renderNotesHistory();
+  renderHeatmap();
 }
 
 /* ── Active Recall Modal Control ── */
@@ -654,10 +829,12 @@ function celebrate() {
 }
 
 function phaseComplete() {
+  const finishedPhase = s.phase;
   stop();
   playBell();
   phaseBurst();
   triggerVisualAlarm();
+  notifyPhase(finishedPhase);
 
   const log = loadLog();
   const taskName = getCurrentTaskText();
@@ -672,6 +849,7 @@ function phaseComplete() {
 
   if (s.phase === 'work') {
     celebrate();
+    Mascot.party();
     openRecallModal();
   } else {
     s.phase = 'work';
@@ -695,6 +873,7 @@ function stop() {
   }
   clearInterval(s.tick);
   s.tick = null;
+  releaseWakeLock();
   saveStateSnapshot();
 }
 
@@ -706,6 +885,7 @@ function start(isResume = false) {
     s.endTime = Date.now() + (totalSecs() * 1000 - s.elapsedMs);
     s.running = true;
   }
+  acquireWakeLock();
   saveStateSnapshot();
   s.tick = setInterval(() => {
     refreshDisplay();
@@ -789,14 +969,25 @@ function applySpotifyHeight(mode) {
 
 /* ── Backup Data Exports ── */
 function exportToCsv() {
-  const log = loadLog();
+  /* exporta TODO el historial guardado (todos los d\u00edas), no solo hoy */
   let csv = '\ufeff'; // UTF-8 BOM
-  csv += '--- HISTORIAL DE HOY ---\n';
-  csv += 'Hora,Tipo,Tema,Duración (min),Nota de Repaso\n';
+  const dias = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('sf_log_')) dias.push(k);
+  }
+  dias.sort();
+  const log = [];
+  dias.forEach(k => {
+    try {
+      JSON.parse(localStorage.getItem(k) || '[]').forEach(e => log.push(Object.assign({ fecha: k.slice(7) }, e)));
+    } catch (e) {}
+  });
+  csv += 'Fecha,Hora,Tipo,Tema,Duración (min),Nota de Repaso\n';
   log.forEach(e => {
     const cleanRecall = (e.recall || '').replace(/"/g, '""');
     const cleanTask = (e.task || '').replace(/"/g, '""');
-    csv += `${e.time},${e.type},"${cleanTask}",${e.dur},"${cleanRecall}"\n`;
+    csv += `${e.fecha},${e.time},${e.type},"${cleanTask}",${e.dur},"${cleanRecall}"\n`;
   });
   
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -914,6 +1105,7 @@ document.getElementById('ambientVol').addEventListener('input', e => Ambient.set
 document.getElementById('bellVol').addEventListener('input', (e) => { settings.bellVol = parseInt(e.target.value); saveSettings(); });
 document.getElementById('btnTestBell').addEventListener('click', () => { getCtx(); playBell(); showNotification('🔊 Tono de prueba reproducido.'); });
 document.getElementById('settingVisualAlarm').addEventListener('change', (e) => { settings.visualAlarm = e.target.checked; saveSettings(); });
+document.getElementById('settingMascot').addEventListener('change', (e) => { settings.mascot = e.target.checked; saveSettings(); Mascot.enable(e.target.checked); });
 document.getElementById('btnStopAlarm').addEventListener('click', stopVisualAlarm);
 
 /* ── Spotify Sizing ── */
@@ -928,18 +1120,20 @@ document.getElementById('todoInput').addEventListener('keydown', e => { if (e.ke
 document.getElementById('btnSaveRecall').addEventListener('click', saveRecallNote);
 
 /* ── Sessions Tabs ── */
-document.getElementById('btnShowLogs').addEventListener('click', () => {
-  document.getElementById('btnShowLogs').classList.add('active');
-  document.getElementById('btnShowNotes').classList.remove('active');
-  document.getElementById('logList').style.display = 'block';
-  document.getElementById('notesList').style.display = 'none';
-});
-document.getElementById('btnShowNotes').addEventListener('click', () => {
-  document.getElementById('btnShowNotes').classList.add('active');
-  document.getElementById('btnShowLogs').classList.remove('active');
-  document.getElementById('logList').style.display = 'none';
-  document.getElementById('notesList').style.display = 'flex';
-  renderNotesHistory();
+const SESSION_TABS = [
+  { btn: 'btnShowLogs',  panel: 'logList',     display: 'block' },
+  { btn: 'btnShowNotes', panel: 'notesList',   display: 'flex'  },
+  { btn: 'btnShowHeat',  panel: 'heatmapWrap', display: 'block' },
+];
+SESSION_TABS.forEach(tab => {
+  document.getElementById(tab.btn).addEventListener('click', () => {
+    SESSION_TABS.forEach(t => {
+      document.getElementById(t.btn).classList.toggle('active', t === tab);
+      document.getElementById(t.panel).style.display = t === tab ? t.display : 'none';
+    });
+    if (tab.btn === 'btnShowNotes') renderNotesHistory();
+    if (tab.btn === 'btnShowHeat') renderHeatmap();
+  });
 });
 
 /* ── Backup Exporters ── */
@@ -973,7 +1167,10 @@ window.addEventListener('load', () => {
 /* ── Optimización: pausa el render de fondos cuando la pestaña no se ve ── */
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { Nebula.stop(); ParticleField.stop(); }
-  else if (Nebula.supported()) { Nebula.start(); ParticleField.start(); }
+  else {
+    if (Nebula.supported()) { Nebula.start(); ParticleField.start(); }
+    if (s.running) acquireWakeLock();   // el wake lock se libera solo al ocultar la pestaña
+  }
 });
 
 /* ═══ PWA ═══ */
@@ -1001,6 +1198,8 @@ document.getElementById('customBreak').value = settings.customBreak;
 document.getElementById('ambientVol').value = settings.ambientVol;
 document.getElementById('bellVol').value = settings.bellVol || 50;
 document.getElementById('settingVisualAlarm').checked = settings.visualAlarm !== false;
+document.getElementById('settingMascot').checked = settings.mascot !== false;
+Mascot.enable(settings.mascot !== false);
 
 document.getElementById('spotifyFrame').src = settings.spotify;
 document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', settings.spotify.includes(c.dataset.pl)));

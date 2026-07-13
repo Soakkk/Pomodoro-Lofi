@@ -273,8 +273,8 @@ body {
 .timer-svg { transform: rotate(-90deg); display: block; overflow: visible; }
 .ticks line { stroke: var(--ring-track); stroke-width: 3; shape-rendering: crispEdges; }
 .ticks line.lit { stroke: var(--phase); opacity: 0.9; }
-.ring-track { fill: none; stroke: var(--ring-track); stroke-width: 8;
-  stroke-dasharray: 4 6; }
+.ring-track { fill: none; stroke: var(--ring-track); stroke-width: 4;
+  stroke-dasharray: 2 8; opacity: 0.6; }
 .ring-progress { fill: none; stroke: url(#ringGrad); stroke-width: 10; stroke-linecap: butt;
   stroke-dasharray: 4 6;
   filter: drop-shadow(0 0 calc(4px + 8px * var(--glow-strength)) var(--phase-glow));
@@ -343,7 +343,7 @@ body {
 .card:hover { transform: translate(-2px,-2px); border-color: var(--accent);
   box-shadow: calc(var(--px)*2 + 2px) calc(var(--px)*2 + 2px) 0 0 rgba(0,0,0,0.55), 0 0 22px -8px var(--accent-glow); }
 
-.card-label { font-family: var(--font-px); font-size: 0.58rem; letter-spacing: 0.12em;
+.card-label { font-family: var(--font-px); font-size: 0.66rem; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--accent);
   display: flex; align-items: center; gap: 0.5rem; }
 .card-label::before { content: "▸"; color: var(--text-mut); }
@@ -442,7 +442,7 @@ body {
 .settings-head h2 { font-family: var(--font-px); font-size: 0.85rem; letter-spacing: 0.08em; }
 .settings-body { padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.9rem; }
 .set-group { display: flex; flex-direction: column; gap: 0.8rem; }
-.set-title { font-family: var(--font-px); font-size: 0.58rem; letter-spacing: 0.12em;
+.set-title { font-family: var(--font-px); font-size: 0.66rem; letter-spacing: 0.12em;
   text-transform: uppercase; color: var(--accent); }
 .set-hint { font-size: 0.95rem; color: var(--text-mut); }
 
@@ -588,6 +588,70 @@ body.visual-alarm-active::after {
   * { transition-duration: 0.01ms !important; }
 }
 
+/* ==============================
+   MASCOTA PIXEL
+============================== */
+.mascot {
+  position: absolute; right: -86px; bottom: 14px;
+  width: 96px; pointer-events: none; z-index: 3;
+}
+.mascot canvas {
+  width: 96px; height: 78px; image-rendering: pixelated;
+  filter: drop-shadow(3px 3px 0 rgba(0,0,0,0.45));
+}
+.mascot.partying canvas { animation: mascotJump 0.42s steps(2, end) infinite; }
+@keyframes mascotJump {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+.mascot-z {
+  position: absolute; top: -6px; right: 6px;
+  font-family: var(--font-px); font-size: 0.7rem; color: var(--text-dim);
+  opacity: 0; text-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+.mascot.sleeping .mascot-z { animation: zFloat 2.4s steps(6, end) infinite; }
+@keyframes zFloat {
+  0% { opacity: 0; transform: translateY(6px) scale(0.7); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-16px) scale(1.25); }
+}
+
+/* ==============================
+   HEATMAP DE ACTIVIDAD (estilo GitHub)
+============================== */
+.heatmap-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+.heatmap-totals { font-size: 1rem; color: var(--text-dim); }
+.heatmap-totals b { color: var(--accent); font-weight: 400; }
+.heatmap-months { display: grid; grid-template-columns: repeat(20, 14px); gap: 3px;
+  font-size: 0.8rem; color: var(--text-mut); line-height: 1; }
+.heatmap-months span { overflow: visible; white-space: nowrap; }
+.heatmap {
+  display: grid; grid-auto-flow: column;
+  grid-template-rows: repeat(7, 14px); grid-auto-columns: 14px;
+  gap: 3px; width: max-content; max-width: 100%; overflow-x: auto;
+  padding-bottom: 2px;
+}
+.hm-cell {
+  width: 14px; height: 14px; display: inline-block;
+  background: var(--surface-2); border: 1px solid rgba(255,255,255,0.06);
+}
+.hm-cell.hm-future { opacity: 0.25; }
+.hm-cell.lvl-1 { background: color-mix(in srgb, var(--accent) 30%, var(--bg)); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.hm-cell.lvl-2 { background: color-mix(in srgb, var(--accent) 55%, var(--bg)); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.hm-cell.lvl-3 { background: color-mix(in srgb, var(--accent) 80%, var(--bg)); border-color: var(--accent); }
+.hm-cell.lvl-4 { background: var(--accent-2); border-color: var(--accent-2); box-shadow: 0 0 6px var(--accent-glow); }
+.heatmap .hm-cell:hover { outline: 2px solid var(--text); outline-offset: 0; }
+.heatmap-legend { display: flex; align-items: center; gap: 4px;
+  font-size: 0.85rem; color: var(--text-mut); }
+.hm-tip {
+  position: fixed; z-index: 160; pointer-events: none;
+  background: var(--bg-2); color: var(--text); border: 2px solid var(--accent);
+  box-shadow: var(--shadow); padding: 3px 8px;
+  font-family: var(--font); font-size: 0.95rem; white-space: nowrap;
+  opacity: 0; transition: opacity 0.12s;
+}
+.hm-tip.show { opacity: 1; }
+
 /* ░░ RESPONSIVE ░░ */
 @media (max-width: 640px) {
   .cards { grid-template-columns: 1fr; }
@@ -596,4 +660,9 @@ body.visual-alarm-active::after {
   .timer-svg { width: 280px; height: 280px; }
   .ring-pulse { width: 215px; height: 215px; }
   .brand { font-size: 0.68rem; }
+  .mascot { right: -8px; bottom: -30px; width: 66px; }
+  .mascot canvas { width: 66px; height: 54px; }
+  .heatmap, .heatmap-months { grid-auto-columns: 11px; grid-template-columns: repeat(20, 11px); }
+  .heatmap { grid-template-rows: repeat(7, 11px); }
+  .hm-cell { width: 11px; height: 11px; }
 }
