@@ -272,7 +272,47 @@ const Ambient = (() => {
     active.set(type, build(type)); return true;
   }
   function setVolume(v) { volume = v/100; settings.ambientVol = v; saveSettings(); if (master) master.gain.setTargetAtTime(volume, getCtx().currentTime, 0.05); }
-  return { toggle, setVolume, getLevel };
+  function getBars(n) {
+    if (!analyser || active.size === 0) return null;
+    analyser.getByteFrequencyData(freqData);
+    const out = []; const step = Math.floor(freqData.length / n);
+    for (let i = 0; i < n; i++) {
+      let sum = 0; for (let j = 0; j < step; j++) sum += freqData[i * step + j];
+      out.push(sum / step / 255);
+    }
+    return out;
+  }
+  return { toggle, setVolume, getLevel, getBars, count: () => active.size };
+})();
+
+/* ── Ecualizador pixel: solo consume mientras suena algo ── */
+const EQ = (() => {
+  const cv = document.getElementById('eqCanvas');
+  const c = cv ? cv.getContext('2d') : null;
+  const N = 16, W = 120, H = 20;
+  let timer = null, color = '#8b7cf8';
+  function frame() {
+    if (!c) return;
+    const bars = Ambient.getBars(N);
+    c.clearRect(0, 0, W, H);
+    if (!bars) return;
+    const bw = Math.floor(W / N);
+    for (let i = 0; i < N; i++) {
+      const lvl = Math.min(1, bars[i] * 1.7);
+      const h = Math.max(2, Math.round(lvl * (H / 2)) * 2);   // cuantizado a 2px
+      c.globalAlpha = 0.55 + lvl * 0.45;
+      c.fillStyle = color;
+      c.fillRect(i * bw + 1, H - h, bw - 2, h);
+    }
+    c.globalAlpha = 1;
+  }
+  function update() {
+    const on = Ambient.count() > 0 && !document.hidden;
+    if (cv) cv.classList.toggle('on', Ambient.count() > 0);
+    if (on && !timer) timer = setInterval(frame, 80);
+    if (!on && timer) { clearInterval(timer); timer = null; if (c) c.clearRect(0, 0, W, H); }
+  }
+  return { update, setColor: (v) => { color = v; } };
 })();
 
 /* ── Campo de partículas (canvas) ── */
@@ -677,15 +717,51 @@ const icPlay = document.querySelector('.ic-play');
 const icPause = document.querySelector('.ic-pause');
 const timerWrapper = document.getElementById('timerWrapper');
 
+/* Dígitos independientes: solo el que cambia "rueda" (slot machine pixel) */
+function renderTime(str) {
+  if (!timeDisplay) return;
+  const prev = timeDisplay.dataset.v || '';
+  if (prev === str) return;
+  if (prev.length !== str.length) {
+    timeDisplay.innerHTML = [...str].map(ch =>
+      `<span class="dg${ch === ':' ? ' colon' : ''}">${ch}</span>`).join('');
+  } else {
+    const spans = timeDisplay.children;
+    for (let i = 0; i < str.length; i++) {
+      if (prev[i] !== str[i]) {
+        spans[i].textContent = str[i];
+        spans[i].classList.remove('roll'); void spans[i].offsetWidth;
+        spans[i].classList.add('roll');
+      }
+    }
+  }
+  timeDisplay.dataset.v = str;
+}
+
+/* Contadores que suben animados hasta el valor nuevo */
+function animateNum(el, to) {
+  const from = parseInt(el.dataset.n ?? el.textContent, 10) || 0;
+  el.dataset.n = to;
+  if (from === to) { el.textContent = to; return; }
+  const t0 = performance.now(), dur = 550;
+  (function step(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    el.textContent = Math.round(from + (to - from) * k);
+    if (k < 1) requestAnimationFrame(step);
+  })(t0);
+  el.classList.remove('num-pop'); void el.offsetWidth; el.classList.add('num-pop');
+}
+
 function refreshDisplay() {
   const t = timeLeftSecs();
-  if (timeDisplay) timeDisplay.textContent = fmt(t);
+  renderTime(fmt(t));
   setRing();
   if (phaseBadge) phaseBadge.textContent = s.phase === 'work' ? 'Trabajo' : 'Descanso';
   if (cycleInfo) cycleInfo.textContent = `Ciclo ${s.cycle} · ${MODES[s.mode].label}`;
   if (icPlay) icPlay.style.display = s.running ? 'none' : 'block';
   if (icPause) icPause.style.display = s.running ? 'block' : 'none';
   if (timerWrapper) timerWrapper.classList.toggle('running', s.running);
+  document.body.classList.toggle('running', s.running);
   document.title = `${fmt(t)} — ${s.phase === 'work' ? 'Enfoque' : 'Descanso'} · StudyFlow`;
 }
 
@@ -693,8 +769,8 @@ function refreshSessions() {
   const log = loadLog();
   const workEntries = log.filter(e => e.type === 'work');
   const n = workEntries.length;
-  document.getElementById('focusMin').textContent = workEntries.reduce((a,e)=>a+(e.dur||0),0);
-  document.getElementById('streakNum').textContent = n;
+  animateNum(document.getElementById('focusMin'), workEntries.reduce((a,e)=>a+(e.dur||0),0));
+  animateNum(document.getElementById('streakNum'), n);
   document.getElementById('sessionsCount').textContent = `${n} completada${n!==1?'s':''}`;
 
   const total = Math.max(n, 8);
@@ -803,14 +879,20 @@ function stopVisualAlarm() {
 function phaseBurst() {
   const p = document.getElementById('ringPulse');
   if (p) { p.classList.remove('burst'); void p.offsetWidth; p.classList.add('burst'); }
-  document.body.classList.remove('flash'); void document.body.offsetWidth; document.body.classList.add('flash');
+  document.body.classList.remove('flash', 'quake'); void document.body.offsetWidth;
+  document.body.classList.add('flash', 'quake');
+  setTimeout(() => document.body.classList.remove('quake'), 600);
 }
 
 /* Transición cinemática al cambiar de fase (GSAP; degrada sin GSAP). */
 function phaseTransition() {
-  if (!window.gsap || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const disp = document.getElementById('timeDisplay');
   const badge = document.getElementById('phaseBadge');
+  /* glitch cromático RGB en el reloj */
+  if (disp) { disp.classList.remove('glitch'); void disp.offsetWidth; disp.classList.add('glitch');
+    setTimeout(() => disp.classList.remove('glitch'), 700); }
+  if (!window.gsap) return;
   if (disp) gsap.fromTo(disp, { scale: 0.72, opacity: 0.25 }, { scale: 1, opacity: 1, duration: 0.75, ease: 'back.out(1.7)', clearProps: 'transform,opacity' });
   if (badge) gsap.fromTo(badge, { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, ease: 'power3.out', clearProps: 'transform,opacity' });
 }
@@ -822,7 +904,9 @@ function celebrate() {
   const css = getComputedStyle(document.documentElement);
   const c1 = css.getPropertyValue('--accent').trim() || '#8b7cf8';
   const c2 = css.getPropertyValue('--accent-2').trim() || c1;
-  const base = { colors: [c1, c2, '#ffffff'], disableForReducedMotion: true, zIndex: 200, scalar: 0.9, ticks: 200 };
+  /* confetti CUADRADO = píxeles volando */
+  const base = { colors: [c1, c2, '#ffffff'], disableForReducedMotion: true, zIndex: 200,
+    shapes: ['square'], scalar: 1.15, ticks: 170, gravity: 1.15 };
   confetti({ ...base, particleCount: 80, spread: 75, startVelocity: 45, origin: { x: 0.5, y: 0.42 } });
   setTimeout(() => confetti({ ...base, particleCount: 45, angle: 60,  spread: 55, origin: { x: 0, y: 0.7 } }), 130);
   setTimeout(() => confetti({ ...base, particleCount: 45, angle: 120, spread: 55, origin: { x: 1, y: 0.7 } }), 130);
@@ -930,7 +1014,7 @@ function applyAmbiente(id) {
 }
 function syncParticleColor() {
   const c = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-  if (c) ParticleField.setColor(c);
+  if (c) { ParticleField.setColor(c); EQ.setColor(c); }
   syncNebulaColors();
 }
 
@@ -1098,7 +1182,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSetting
 document.getElementById('btnLoadSpotify').addEventListener('click', () => loadSpotify(document.getElementById('spotifyUrl').value));
 document.getElementById('spotifyUrl').addEventListener('keydown', e => { if (e.key === 'Enter') loadSpotify(e.target.value); });
 document.getElementById('spotifyPresets').addEventListener('click', (e) => { const c = e.target.closest('.chip'); if (c) loadSpotify('https://open.spotify.com/playlist/' + c.dataset.pl); });
-document.getElementById('ambientBtns').addEventListener('click', (e) => { const b = e.target.closest('.amb'); if (!b) return; const on = Ambient.toggle(b.dataset.amb); b.classList.toggle('active', on); });
+document.getElementById('ambientBtns').addEventListener('click', (e) => { const b = e.target.closest('.amb'); if (!b) return; const on = Ambient.toggle(b.dataset.amb); b.classList.toggle('active', on); EQ.update(); });
 document.getElementById('ambientVol').addEventListener('input', e => Ambient.setVolume(+e.target.value));
 
 /* ── Alarma y volumen ── */
@@ -1171,6 +1255,7 @@ document.addEventListener('visibilitychange', () => {
     if (Nebula.supported()) { Nebula.start(); ParticleField.start(); }
     if (s.running) acquireWakeLock();   // el wake lock se libera solo al ocultar la pestaña
   }
+  EQ.update();
 });
 
 /* ═══ PWA ═══ */

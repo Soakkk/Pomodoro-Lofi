@@ -43,7 +43,7 @@
     <header class="topbar reveal" style="--d:0">
       <div class="brand">
         <span class="brand-mark">◆</span>
-        <span class="brand-name">STUDY<span class="brand-accent">FLOW</span></span>
+        <span class="brand-name" data-text="STUDYFLOW">STUDY<span class="brand-accent">FLOW</span></span>
       </div>
 
       <nav class="theme-quick" id="ambNav" aria-label="Ambiente">
@@ -89,6 +89,8 @@
             <circle class="ring-head" id="ringHead" r="5"></circle>
           </svg>
           <div class="ring-pulse" id="ringPulse" aria-hidden="true"></div>
+          <div class="deco-ring" aria-hidden="true"></div>
+          <div class="orbit" aria-hidden="true"><span></span><span></span><span></span></div>
           <div class="mascot" id="mascot" aria-hidden="true">
             <canvas id="mascotCv" width="16" height="13"></canvas>
             <span class="mascot-z" id="mascotZ">Z</span>
@@ -197,6 +199,7 @@
             <button class="amb" data-amb="white"><span class="amb-ic">⚪</span><span>Blanco</span></button>
             <button class="amb" data-amb="brown"><span class="amb-ic">🟤</span><span>Marrón</span></button>
           </div>
+          <canvas id="eqCanvas" class="eq" width="120" height="20" aria-hidden="true"></canvas>
           <div class="vol-row">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
             <input type="range" id="ambientVol" min="0" max="100" value="50" class="slider">
