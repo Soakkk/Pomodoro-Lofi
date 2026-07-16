@@ -1,9 +1,9 @@
 /* StudyFlow · service worker
    App shell offline · network-first en navegación para recibir updates */
-const CACHE = 'studyflow-v13-pixel';
+const CACHE = 'studyflow-v14-icon';
 const SHELL = [
   './', './index.html', './app.css', './app.js', './confetti.min.js',
-  './manifest.webmanifest', './icon.svg',
+  './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png',
 ];
 
